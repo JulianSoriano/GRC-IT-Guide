@@ -10,7 +10,7 @@ Open `index.html` in any web browser. There is nothing to install.
 - Entries link to related entries.
 - Flashcards quiz you on the terms and interview questions in the current view.
 - Some entries carry an **Official sources** section linking to the regulator or the law. Links can move, so search the name if one fails.
-- A **Zero Breach Toolkit** section explains the separate open-source spyware-check tool (what it checks, how to read a result, its limits, and how to verify it before running). The tool itself is not bundled: [interplains/zero-breach-toolkit](https://github.com/interplains/zero-breach-toolkit).
+- A **Zero Breach Toolkit** section explains the separate open-source spyware-check tool (what it checks, how to read a result, its limits, and how to verify it before running). A reduced browser port is in [`scanner/index.html`](scanner/index.html) (see `scanner/NOTICE.md`). The original is not bundled: [interplains/zero-breach-toolkit](https://github.com/interplains/zero-breach-toolkit).
 - Treat the legal content as study notes, not legal advice. Entries tagged `check-status` describe fast-moving rules, so confirm them on the regulator's site.
 - Add, edit and delete your own entries. They are saved in your browser.
 - Use **Export** to download a backup file, and **Import** to load one back, for example on another device.

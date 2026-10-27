@@ -1,0 +1,1657 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src https://raw.githubusercontent.com; img-src data:; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Zero Breach Scanner (browser version)</title>
+<style>
+:root{--bg:#f7f7f4;--fg:#1d2327;--mut:#5b646b;--card:#fff;--line:#d9dcd6;--acc:#1f5f8b;--accfg:#fff;--bad:#a4271e;--badbg:#fbeceb;--warn:#8a5a00;--warnbg:#fff4de;--ok:#1d6b3a;--okbg:#e8f5ec;--note:#35506b;--notebg:#eaf1f8}
+@media (prefers-color-scheme:dark){:root{--bg:#14181b;--fg:#e6e8ea;--mut:#9aa4ab;--card:#1c2226;--line:#333b41;--acc:#6fb1de;--accfg:#0d1418;--bad:#ff8f86;--badbg:#3a1d1b;--warn:#f0c068;--warnbg:#3a2e14;--ok:#7fd19a;--okbg:#17301f;--note:#9ec3e6;--notebg:#1b2a38}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+main{max-width:860px;margin:0 auto;padding:20px 16px 60px}
+h1{font-size:1.7rem;margin:.2em 0}h2{font-size:1.25rem;margin:0 0 .4em}h3{font-size:1.05rem;margin:.2em 0}
+.sub{color:var(--mut);margin:0 0 1em}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin:14px 0}
+.privacy{border-left:5px solid var(--ok)}
+.btn{font:inherit;background:var(--acc);color:var(--accfg);border:0;border-radius:8px;padding:10px 16px;cursor:pointer;min-height:44px}
+.btn.alt{background:transparent;color:var(--acc);border:1px solid var(--acc)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn:focus-visible,#drop:focus-visible,input:focus-visible,summary:focus-visible,a:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+a{color:var(--acc)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+#drop{border:2px dashed var(--line);border-radius:12px;padding:22px;text-align:center}
+#drop.over{border-color:var(--acc);background:var(--notebg)}
+.big{font-size:1.9rem;font-weight:700}
+table{border-collapse:collapse;width:100%;font-size:.9rem}th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}td.num{text-align:right}
+.bad{color:var(--bad)}.muted{color:var(--mut);font-size:.92rem}
+.verdict{border-radius:10px;padding:16px;border:1px solid var(--line)}
+.verdict.alert{background:var(--badbg);border-color:var(--bad)}.verdict.warn{background:var(--warnbg);border-color:var(--warn)}.verdict.ok{background:var(--okbg);border-color:var(--ok)}.verdict.note{background:var(--notebg);border-color:var(--note)}
+.stats{display:flex;gap:16px;flex-wrap:wrap;color:var(--mut)}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}
+.help{background:var(--warnbg);border:1px solid var(--warn);border-radius:10px;padding:12px;margin:12px 0}
+.grp{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin:12px 0}
+.grp.serious{border-left:5px solid var(--bad)}.grp.quiet{border-left:5px solid var(--note)}
+.grp ul{list-style:none;padding:0;margin:0}.grp ul.plain{list-style:disc;padding-left:20px}
+.n{background:var(--line);border-radius:99px;padding:0 9px;font-size:.85rem;font-weight:400}
+.meaning{color:var(--mut);margin:.2em 0 .6em}
+.hit{border-top:1px solid var(--line);padding:10px 0;overflow-wrap:anywhere}
+.hit-top{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:4px}
+.ind{font-weight:600}.badge{background:var(--notebg);color:var(--note);border-radius:6px;padding:1px 8px;font-size:.82rem}.badge.soft{background:var(--line);color:var(--mut)}
+.hit-where,.hit-src{font-size:.92rem}.hit-where span,.hit-src span{display:inline-block;min-width:64px;color:var(--mut)}
+.hit-note{font-size:.88rem;color:var(--warn);margin-top:3px}
+code{font:.9em ui-monospace,Menlo,Consolas,monospace;overflow-wrap:anywhere}.grp li,.help,.verdict{overflow-wrap:anywhere}
+input[type=password]{font:inherit;padding:9px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--fg);min-height:44px;max-width:100%}
+details{margin:8px 0}summary{cursor:pointer}
+[hidden]{display:none!important}
+@media (max-width:520px){main{padding:14px 16px 50px}.btn{width:100%}}
+</style>
+</head>
+<body>
+<main>
+<h1>Zero Breach Scanner</h1>
+<p class="sub">Checks files you choose for traces of known spyware, stalkerware and mercenary-spyware infrastructure. Browser version of <a href="https://github.com/interplains/Zero-breach-toolkit" target="_blank" rel="noopener noreferrer">Zero Breach Toolkit</a>.</p>
+
+<section class="card privacy" aria-labelledby="ph">
+<h2 id="ph">Your files stay on your device</h2>
+<p>Everything is checked inside this page. Nothing you choose is uploaded, and the page is not allowed to contact any website except one: the <strong>Update</strong> button, which downloads public indicator lists from raw.githubusercontent.com. It never sends your files. Turn off Wi-Fi after the page loads if you want to be sure.</p>
+</section>
+
+<section class="card" aria-labelledby="lh">
+<h2 id="lh">1. Indicator lists</h2>
+<p><span class="big" id="iocCount">0</span> indicators loaded. <span id="iocAsof"></span> <span id="iocWho"></span></p>
+<div class="row"><button class="btn" id="updateBtn" type="button">Update from published lists</button><button class="btn alt" id="ownBtn" type="button">Load an indicator file</button><button class="btn alt" id="clearBtn" type="button">Remove downloaded lists</button><input id="ownFile" type="file" multiple hidden></div>
+<p class="muted" id="updateStatus" role="status"></p>
+<details><summary>Show the lists in use</summary><table><thead><tr><th>List</th><th>Kind</th><th>Indicators</th><th>Date</th></tr></thead><tbody id="iocTable"></tbody></table>
+<p class="muted">The built-in lists are small, public-domain (CC0) sets. The larger lists come from Amnesty International's Security Lab, MVT, Citizen Lab and ECHAP and are downloaded only when you press Update; they are kept in this browser, not redistributed by this page.</p></details>
+</section>
+
+<section class="card" aria-labelledby="fh">
+<h2 id="fh">2. Choose what to check</h2>
+<div id="drop" tabindex="0" role="group" aria-label="Drop files or folders here">
+<p><strong>Drop a folder here</strong>, or choose one:</p>
+<div class="row" style="justify-content:center"><button class="btn" id="dirBtn" type="button">Choose a folder</button><button class="btn alt" id="filesBtn" type="button">Choose files</button></div>
+<input id="dirInput" type="file" webkitdirectory multiple hidden><input id="filesInput" type="file" multiple hidden>
+</div>
+<p id="selSummary" role="status">Nothing chosen yet.</p>
+<details><summary>What can I choose?</summary>
+<ul>
+<li><strong>An iPhone backup folder</strong> (made with Finder or iTunes; encrypted backups work, you will be asked for the password). It is the folder holding <code>Manifest.db</code>.</li>
+<li><strong>An Android collection</strong> from AndroidQF (the folder with <code>packages.json</code>, <code>getprop.txt</code> and similar), including a <code>backup.ab</code>.</li>
+<li><strong>A browser profile folder</strong> (Chrome, Edge, Firefox, Safari) or any folder of saved files: history, downloads, cookies and text files are searched.</li>
+<li>A web page cannot look at system locations by itself. Copy or pick the folders you want checked.</li>
+</ul></details>
+<div class="row" style="margin-top:10px"><button class="btn" id="runBtn" type="button" disabled>Check these files</button><button class="btn alt" id="cancelBtn" type="button" hidden>Cancel</button></div>
+<p id="prog" hidden role="status"><span id="progText">Working…</span></p>
+<div id="pwBox" hidden class="help"><p id="pwMsg"></p><label for="pw">Backup password</label><div class="row"><input id="pw" type="password" autocomplete="off"><button class="btn" id="pwGo" type="button">Check again</button></div><p class="muted">The password is used only in this page to unlock the backup and is cleared afterwards.</p></div>
+</section>
+
+<div id="results" hidden></div>
+
+<section class="card" aria-labelledby="lim">
+<h2 id="lim">Honest limits</h2>
+<ul>
+<li>This is a <strong>reduced browser port</strong> of a much larger desktop tool, written independently. It has been tested only on synthetic data, not on real spyware or real encrypted backups. For anything serious, use the original desktop tool and get expert help.</li>
+<li>It only finds <strong>known, published</strong> indicators. "Nothing found" is never proof a device is clean.</li>
+<li>Not included: YARA rules, Windows registry, Prefetch, Amcache and event logs (these are only searched as raw text), and deeper iOS data such as sysdiagnose.</li>
+<li>If you may be a target of surveillance, contact the <a href="https://www.accessnow.org/help/" target="_blank" rel="noopener noreferrer">Access Now Digital Security Helpline</a> or <a href="https://securitylab.amnesty.org/get-help/" target="_blank" rel="noopener noreferrer">Amnesty's Security Lab</a>.</li>
+</ul>
+<p class="muted">Derived from Zero Breach Toolkit by archivegenocide (Apache-2.0); bundled indicator data is CC0. Not affiliated with or endorsed by the original authors or by any indicator publisher. See NOTICE.md.</p>
+</section>
+</main>
+<script>
+/* Indicator model, list parsers and matcher.
+   Browser port of the matching rules in Zero Breach Toolkit (Apache-2.0). See NOTICE.md. */
+(function(G){
+'use strict';
+const T={DOMAIN:'domain',IP:'ip',SHA256:'sha256',APP:'app-id',CERT:'app-cert',PROC:'process',PROFILE:'profile-id',PATH:'file-path',FNAME:'file-name',PROP:'android-property',EMAIL:'email'};
+const NETWORK=new Set([T.DOMAIN,T.IP]);
+const SHARED=new Set(('bit.ly bitly.com j.mp tinyurl.com goo.gl t.co ow.ly is.gd v.gd buff.ly rebrand.ly cutt.ly shorturl.at tiny.cc lnkd.in t.ly rb.gy s.id '+
+ 'google.com googleusercontent.com googleapis.com storage.googleapis.com docs.google.com drive.google.com sites.google.com blogspot.com dropbox.com dropboxusercontent.com '+
+ 'dl.dropboxusercontent.com github.com gist.github.com api.github.com github.io githubusercontent.com raw.githubusercontent.com gist.githubusercontent.com '+
+ 'objects.githubusercontent.com pastebin.com mediafire.com mega.nz wetransfer.com facebook.com fb.com instagram.com twitter.com x.com t.me telegram.me telegram.org wa.me whatsapp.com youtube.com youtu.be').split(/\s+/));
+const SHARED_REASON='a whole shared public service (only specific links or accounts on it were malicious)';
+function sharedService(v){v=(v||'').toLowerCase().replace(/\.+$/,'');return SHARED.has(v)||(v.startsWith('www.')&&SHARED.has(v.slice(4)))}
+
+const RE_SHA256=/^[0-9a-f]{64}$/, RE_IP4=/^\d{1,3}(\.\d{1,3}){3}$/;
+function inferType(s){s=s.trim().toLowerCase();if(RE_SHA256.test(s))return T.SHA256;if(RE_IP4.test(s)||(s.includes(':')&&/^[0-9a-f:]+$/.test(s)))return T.IP;return T.DOMAIN}
+
+/* ---- validation (values are refused, never scanned for, when unsafe) ---- */
+function domainProblem(v){
+  if(v.length<4||v.length>253)return 'not a valid domain name';
+  const labels=v.split('.');
+  if(labels.length<2)return 'not a valid domain name';
+  for(const l of labels){ if(!/^[a-z0-9_]([a-z0-9_-]{0,61}[a-z0-9_])?$/.test(l))return 'not a valid domain name'; }
+  if(!/[a-z]/.test(labels[labels.length-1]))return 'not a valid domain name';
+  return '';
+}
+function ip4Problem(v){
+  const p=v.split('.').map(x=>x); if(p.length!==4)return 'not a valid IP address';
+  if(p.some(x=>!/^\d{1,3}$/.test(x)||(x.length>1&&x[0]==='0')||+x>255))return 'not a valid IP address';
+  const [a,b,c]=p.map(Number);
+  if(a===0||a===10||a===127||a>=224||(a===100&&b>=64&&b<=127)||(a===169&&b===254)||(a===172&&b>=16&&b<=31)||
+     (a===192&&b===0&&(c===0||c===2))||(a===192&&b===168)||(a===198&&(b===18||b===19))||(a===198&&b===51&&c===100)||(a===203&&b===0&&c===113))
+     return 'not a public internet address';
+  return '';
+}
+function ip6Problem(v){
+  if(!/^[0-9a-f:]+$/.test(v)||!v.includes(':')||v.length<3||v.length>45||(v.match(/::/g)||[]).length>1)return 'not a valid IP address';
+  const first=parseInt((v.split(':')[0]||'0'),16);
+  if(v==='::'||v==='::1'||(first>=0xfc00&&first<=0xfdff)||(first>=0xfe80&&first<=0xfebf)||first>=0xff00||v.startsWith('2001:db8'))return 'not a public internet address';
+  return '';
+}
+const RE_APP=/^[a-z0-9_]+(\.[a-z0-9_]+)+$/, RE_PROC=/^[a-z0-9._+ -]{1,64}$/, RE_UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const RE_PROP=/^[a-z0-9_.-]{3,128}$/, RE_EMAIL=/^[a-z0-9._%+-]{1,64}@[a-z0-9.-]+\.[a-z]{2,}$/;
+function deviceProblem(kind,v){
+  switch(kind){
+    case T.APP:return v.length<=255&&RE_APP.test(v)?'':'not an Android package name';
+    case T.CERT:return /^([0-9a-f]{40}|[0-9a-f]{64})$/.test(v)?'':'not a certificate fingerprint';
+    case T.PROC:return RE_PROC.test(v)?'':'not a process name';
+    case T.PROFILE:return RE_UUID.test(v)?'':'not a profile UUID';
+    case T.PATH:return v.startsWith('/')&&v.length>=2&&v.length<=512?'':'not an absolute path';
+    case T.FNAME:return v.length>=2&&v.length<=255&&!v.includes('/')?'':'not a file name';
+    case T.PROP:return RE_PROP.test(v)?'':'not an Android property name';
+    case T.EMAIL:return RE_EMAIL.test(v)?'':'not an email address';
+  }
+  return 'unsupported type';
+}
+function normalise(kind,raw){
+  let v=String(raw).trim(), orig=v; v=v.toLowerCase();
+  if(/[\ufeff\u200b\u200c\u200d\u2060\u0000-\u001f]/.test(v))return {value:v,problem:'contains invisible or control characters'};
+  if(kind===T.DOMAIN){
+    v=v.replace(/\.+$/,'');
+    if(v.startsWith('*.'))return {value:v,problem:'wildcard domains are not supported'};
+    if(/[^\x00-\x7f]/.test(v)){ try{ v=new URL('http://'+v).hostname }catch(e){return {value:v,problem:'not a valid domain name'}} }
+    if(inferType(v)!==T.DOMAIN)return {value:v,problem:'listed as a domain but shaped like an address or hash'};
+    return {value:v,problem:domainProblem(v)};
+  }
+  if(kind===T.IP){ return {value:v,problem:v.includes(':')?ip6Problem(v):ip4Problem(v)}; }
+  if(kind===T.SHA256){ return {value:v,problem:RE_SHA256.test(v)?'':'not a 64-digit SHA-256'}; }
+  if(kind===T.CERT||kind===T.FNAME||kind===T.PATH||kind===T.PROP||kind===T.PROC||kind===T.APP||kind===T.PROFILE||kind===T.EMAIL){
+    if(kind===T.CERT)v=v.replace(/:/g,'');
+    return {value:v,problem:deviceProblem(kind,v),orig:orig};
+  }
+  return {value:v,problem:'unsupported type'};
+}
+
+/* ---- IocSet ---- */
+class IocSet{
+  constructor(){this.maps={};this.sets=[];this.asof=null;this._idx=null;this.count=0}
+  add(ind){
+    const m=this.maps[ind.type]||(this.maps[ind.type]=new Map());
+    if(m.has(ind.value))return false;
+    m.set(ind.value,ind);this.count++;this._idx=null;return true;
+  }
+  get(type,v){const m=this.maps[type];return m?m.get(String(v).trim().toLowerCase())||null:null}
+  of(type){const m=this.maps[type];return m?[...m.values()]:[]}
+  size(type){const m=this.maps[type];return m?m.size:0}
+  merge(o){for(const m of Object.values(o.maps))for(const i of m.values())this.add(i);
+    this.sets.push(...o.sets); if(o.asof&&(!this.asof||o.asof>this.asof))this.asof=o.asof}
+  get computerCount(){return this.size(T.DOMAIN)+this.size(T.IP)+this.size(T.SHA256)}
+  index(){
+    if(this._idx)return this._idx;
+    const doms=this.maps[T.DOMAIN]||new Map(), ips=this.maps[T.IP]||new Map();
+    const ip4=new Map(), ip6=[];
+    for(const [v,i] of ips){ if(RE_IP4.test(v))ip4.set(v,i); else ip6.push(i); }
+    let maxLabels=0,maxLen=0; const tlds=new Set();
+    for(const v of doms.keys()){const n=v.split('.').length; if(n>maxLabels)maxLabels=n; if(v.length>maxLen)maxLen=v.length; tlds.add(v.slice(v.lastIndexOf('.')+1))}
+    const order=new Map(); let n=0; for(const v of doms.keys())order.set('d:'+v,n++); for(const v of ips.keys())order.set('d:'+v,n++);
+    return this._idx={doms,ip4,ip6,maxLabels,maxLen,tlds,order};
+  }
+  /* all indicators that occur in lower-case text as whole indicators: [{ind,positions:[...]}] */
+  search(hay){
+    const {doms,ip4,ip6,maxLabels,maxLen,tlds}=this.index();
+    const occ=new Map();
+    const push=(ind,idx)=>{let a=occ.get(ind.value);if(!a){a=[];occ.set(ind.value,a)}a.push(idx)};
+    if(doms.size){
+      TOKEN.lastIndex=0; let m;
+      while((m=TOKEN.exec(hay))){
+        const tok=m[0]; if(!tok.includes('.'))continue;
+        const n=tok.length, dots=[]; for(let i=0;i<n;i++)if(tok.charCodeAt(i)===46)dots.push(i);
+        const ends=[n]; for(const d of dots){ if(d+1===n||tok[d+1]==='.'||tok[d+1]==='_')ends.push(d); }
+        for(const end of ends){
+          const last=tok.lastIndexOf('.',end-1); if(last<0||end-1<0)continue;
+          if(!tlds.has(tok.slice(last+1,end)))continue;
+          const starts=[0]; for(const d of dots){ if(d+1<end)starts.push(d+1); }
+          let labels=0;
+          for(let k=starts.length-1;k>=0;k--){
+            const start=starts[k]; labels++;
+            if(labels>maxLabels||end-start>maxLen)break;
+            if(start>=end)continue;
+            const ind=doms.get(tok.slice(start,end)); if(!ind)continue;
+            const idx=m.index+start;
+            if(validAt(hay,idx,end-start,T.DOMAIN,ind.value))push(ind,idx);
+          }
+        }
+        if(m.index===TOKEN.lastIndex)TOKEN.lastIndex++;
+      }
+    }
+    if(ip4.size){
+      RUN4.lastIndex=0; let m;
+      while((m=RUN4.exec(hay))){
+        const run=m[0];
+        for(let i=0;i<run.length;i++){
+          if(run[i]==='.'||(i>0&&run[i-1]!=='.'))continue;
+          CAND4.lastIndex=i; const c=CAND4.exec(run); if(!c)continue;
+          const ind=ip4.get(c[0]); const idx=m.index+i;
+          if(ind&&validAt(hay,idx,c[0].length,T.IP,ind.value))push(ind,idx);
+        }
+      }
+    }
+    for(const ind of ip6){
+      if(!hay.includes(ind.value))continue;
+      let from=0,p; while((p=hay.indexOf(ind.value,from))!==-1){ if(validAt(hay,p,ind.value.length,T.IP,ind.value))push(ind,p); from=p+1; }
+    }
+    /* parent pruning: a parent domain that only ever occurs as the tail of a matched child is one contact, not two */
+    const out=[];
+    for(const [v,pos] of occ){
+      const ind=this.maps[T.DOMAIN]&&this.maps[T.DOMAIN].get(v)||this.maps[T.IP].get(v);
+      let keep=true;
+      if(ind.type===T.DOMAIN){
+        const kids=[...occ.keys()].filter(c=>c!==v&&c.endsWith('.'+v));
+        if(kids.length){
+          const standalone=pos.some(p=>!kids.some(c=>{const extra=c.length-v.length;const s=p-extra;return s>=0&&hay.slice(s,p+v.length)===c}));
+          keep=standalone;
+        }
+      }
+      if(keep)out.push({ind,positions:pos});
+    }
+    return out;
+  }
+}
+const TOKEN=/(?<![a-z0-9_.\-])[a-z0-9_\-]*\.[a-z0-9_.\-]*/g;
+const RUN4=/[0-9.]{7,}/g, CAND4=/[0-9]{1,3}(?:\.[0-9]{1,3}){3}/y;
+const isLabel=c=>c!==undefined&&/[a-z0-9-]/.test(c), isDigit=c=>c!==undefined&&c>='0'&&c<='9', isHex=c=>c!==undefined&&/[0-9a-f]/.test(c);
+function validAt(hay,idx,nlen,type,display){
+  const before=idx>0?hay[idx-1]:undefined, after=idx+nlen<hay.length?hay[idx+nlen]:undefined;
+  let leftBad,rightBad,cont;
+  if(type===T.IP){
+    if(display.includes(':')){leftBad=c=>isHex(c)||c===':'||c==='.';rightBad=c=>isHex(c)||c===':';cont=isHex}
+    else{leftBad=c=>isDigit(c)||c==='.';rightBad=isDigit;cont=isDigit}
+  }else{leftBad=c=>isLabel(c)||c==='_';rightBad=c=>isLabel(c)||c==='_';cont=isLabel}
+  let ok=before===undefined||!leftBad(before);
+  if(ok&&after!==undefined){
+    if(rightBad(after))ok=false;
+    else if(after==='.'){const nxt=idx+nlen+1<hay.length?hay[idx+nlen+1]:undefined;ok=nxt===undefined||!cont(nxt)}
+  }
+  return ok;
+}
+
+/* ---- bytes ---- */
+const L1=new TextDecoder('latin1'), U16=new TextDecoder('utf-16le');
+function searchBytes(set,bytes){
+  const res=new Map();
+  const merge=(list,enc)=>{for(const h of list){const e=res.get(h.ind.value);if(e){e.positions.push(...h.positions);if(!e.enc.includes(enc))e.enc.push(enc)}else res.set(h.ind.value,{ind:h.ind,positions:[...h.positions],enc:[enc]})}};
+  const CH=8*1024*1024;
+  for(let off=0;off<bytes.length;off+=CH){
+    const part=bytes.subarray(off,Math.min(bytes.length,off+CH+256));
+    merge(set.search(L1.decode(part).toLowerCase()),'text');
+    for(const a of [0,1]){ const w=part.subarray(a,a+((part.length-a)&~1)); merge(set.search(U16.decode(w).toLowerCase()),'utf-16'); }
+  }
+  return [...res.values()];
+}
+
+/* ---- list parsers ---- */
+function bump(o,k,n){o[k]=(o[k]||0)+(n||1)}
+function blank(name){return {name,usable:0,refused:{},notApplicable:{},families:{},device:{}}}
+const TIERS_OK=new Set(['stalkerware','cc','validator','delivery','historical','sample','vuln-driver','candiru','candiru-ip','infrastructure','infrastructure-ip','artifact']);
+function parseCurated(text,name){
+  const set=new IocSet(), st=blank(name); let lineno=0;
+  for(let raw of text.replace(/^\ufeff/,'').split(/\r?\n/)){
+    lineno++; const line=raw.trim(); if(!line)continue;
+    if(line.startsWith('#')){const m=/^#\s*as-of:\s*(\d{4}-\d{2}-\d{2})\s*$/.exec(line); if(m)set.asof=m[1]; continue}
+    const p=raw.split('\t').map(x=>x.trim());
+    if(p.length<3||p.length>5)throw new Error('line '+lineno+': expected 3 to 5 tab-separated columns');
+    const kind=inferType(p[0]); const n=normalise(kind,p[0]);
+    if(n.problem){bump(st.refused,n.problem);continue}
+    if(kind===T.DOMAIN&&sharedService(n.value)){bump(st.notApplicable,SHARED_REASON);continue}
+    const tier=TIERS_OK.has(p[1])?p[1]:'infrastructure';
+    set.add({value:n.value,type:kind,tier,confidence:p[2]==='secondary'?'secondary':'primary',source:p[3]||name,family:p[4]||''});
+    st.usable++;
+  }
+  set.sets.push(st); return set;
+}
+const PATTERN=/^\[\s*([a-z0-9-]+)\s*:\s*([a-z0-9_.'-]+?)\s*=\s*'([^'\\]*)'\s*\]$/i;
+const DEVICE={'app:id':T.APP,'app:cert.sha1':T.CERT,'app:cert.sha256':T.CERT,'process:name':T.PROC,'configuration-profile:id':T.PROFILE,'file:path':T.PATH,'file:name':T.FNAME,'android-property:name':T.PROP,'email-addr:value':T.EMAIL};
+function classify(o,p){o=o.toLowerCase();p=p.toLowerCase();
+  if(o==='domain-name'&&p==='value')return T.DOMAIN;
+  if((o==='ipv4-addr'||o==='ipv6-addr')&&p==='value')return T.IP;
+  if(o==='file'&&['hashes.sha256',"hashes.'sha-256'",'hashes.sha-256',"hashes.'sha256'"].includes(p))return T.SHA256;
+  return DEVICE[o+':'+p]||null;
+}
+function parseStix(text,source,family,category,name){
+  const doc=JSON.parse(text); if(!doc||!Array.isArray(doc.objects))throw new Error('not a STIX bundle');
+  const set=new IocSet(), st=blank(name||source); st.indicatorObjects=0; st.unparsed=0;
+  const names={}, ofInd={};
+  for(const o of doc.objects){ if(o&&o.type==='malware'&&o.id)names[o.id]=o.name||''; if(o&&o.type==='intrusion-set'&&o.id)names[o.id]=o.name||''; }
+  for(const o of doc.objects){ if(o&&o.type==='relationship'&&o.relationship_type==='indicates'&&names[o.target_ref])ofInd[o.source_ref]=names[o.target_ref]; }
+  if(doc.objects.length>200000)throw new Error('too many objects');
+  for(const o of doc.objects){
+    if(!o||o.type!=='indicator'||typeof o.pattern!=='string')continue;
+    st.indicatorObjects++;
+    const m=PATTERN.exec(o.pattern.trim()); if(!m){st.unparsed++;continue}
+    const kind0=classify(m[1],m[2]); if(!kind0){bump(st.notApplicable,m[1].toLowerCase()+':'+m[2].toLowerCase());continue}
+    let kind=kind0;
+    if(kind===T.DOMAIN&&inferType(m[3].trim().toLowerCase().replace(/\.+$/,''))===T.IP)kind=T.IP;
+    const n=normalise(kind,m[3]); if(n.problem){bump(st.refused,n.problem);continue}
+    if(kind===T.DOMAIN&&sharedService(n.value)){bump(st.notApplicable,SHARED_REASON);continue}
+    const fam=ofInd[o.id]||family||'';
+    const tier=category==='stalkerware'?'stalkerware':(DEVICE_TIER(kind)||(kind===T.IP?'infrastructure-ip':kind===T.SHA256?'sample':'infrastructure'));
+    const ind={value:n.value,type:kind,tier,confidence:'primary',source:source,family:fam};
+    if(n.orig&&(kind===T.PATH||kind===T.FNAME))ind.orig=n.orig;
+    if(set.add(ind)){st.usable++; if(fam)bump(st.families,fam); if(!(kind===T.DOMAIN||kind===T.IP||kind===T.SHA256))bump(st.device,kind)}
+  }
+  if(!set.count)throw new Error('no usable indicator in this bundle');
+  set.sets.push(st); return set;
+}
+function DEVICE_TIER(kind){return (kind===T.DOMAIN||kind===T.IP||kind===T.SHA256)?null:'artifact'}
+function parseList(text,fmt,source,family,category,name){
+  const set=new IocSet(), st=blank(name||source);
+  const add=(raw,kind)=>{
+    raw=(raw||'').trim().replace(/^"|"$/g,''); if(!raw)return;
+    if(kind===T.DOMAIN&&inferType(raw.toLowerCase().replace(/\.+$/,''))===T.IP)kind=T.IP;
+    const n=normalise(kind,raw); if(n.problem){bump(st.refused,n.problem);return}
+    if(kind===T.DOMAIN&&sharedService(n.value)){bump(st.notApplicable,SHARED_REASON);return}
+    const tier=category==='stalkerware'?'stalkerware':(kind===T.IP?'infrastructure-ip':kind===T.SHA256?'sample':'infrastructure');
+    if(set.add({value:n.value,type:kind,tier,confidence:'primary',source,family})){st.usable++;if(family)bump(st.families,family)}
+  };
+  const rows=csv(text.replace(/^\ufeff/,''));
+  if(fmt==='domains-txt'){for(const line of text.replace(/^\ufeff/,'').split(/\r?\n/))add(line.split('#')[0],T.DOMAIN)}
+  else if(fmt==='csv-domain-ip'){const h=(rows[0]||[]).map(x=>x.trim().toLowerCase());const di=h.indexOf('domain_name'),ii=h.indexOf('ip_address');for(const r of rows.slice(1)){if(di>=0)add(r[di],T.DOMAIN);if(ii>=0)add(r[ii],T.IP)}}
+  else if(fmt==='misp-csv'){
+    const h=(rows[0]||[]).map(x=>x.trim().toLowerCase());const ti=h.indexOf('type'),vi=h.indexOf('value');
+    const K={domain:T.DOMAIN,hostname:T.DOMAIN,'ip-dst':T.IP,'ip-src':T.IP,sha256:T.SHA256,url:'url'};
+    for(const r of rows.slice(1)){
+      const t=(r[ti]||'').trim().toLowerCase(), k=K[t];
+      if(!k){bump(st.notApplicable,t||'?');continue}
+      if(k==='url'){let host='';try{host=new URL((r[vi]||'').trim()).hostname}catch(e){}
+        if(host&&[...SHARED].some(s=>host===s||host.endsWith('.'+s))){bump(st.notApplicable,'link on a shared service (only that link was malicious)')}else add(host,T.DOMAIN)}
+      else add(r[vi],k);
+    }
+  }else throw new Error('unknown list format '+fmt);
+  if(!set.count)throw new Error('no usable indicator in this list');
+  set.sets.push(st); return set;
+}
+function csv(text){const rows=[];let row=[],f='',q=false;
+  for(let i=0;i<text.length;i++){const c=text[i];
+    if(q){if(c==='"'){if(text[i+1]==='"'){f+='"';i++}else q=false}else f+=c}
+    else if(c==='"')q=true; else if(c===','){row.push(f);f=''} else if(c==='\n'||c==='\r'){if(c==='\r'&&text[i+1]==='\n')i++;row.push(f);f='';if(row.length>1||row[0]!=='')rows.push(row);row=[]} else f+=c}
+  if(f!==''||row.length){row.push(f);rows.push(row)} return rows}
+/* sniff a downloaded or chosen file and parse it */
+function parseAny(text,name){
+  const t=text.trimStart();
+  if(t.startsWith('{'))return parseStix(text,name,'','',name);
+  if(/^[^\t\n]+\t[^\t\n]+\t[^\t\n]+/m.test(t)&&t.split('\n').some(l=>l&&!l.startsWith('#')&&l.split('\t').length>=3))return parseCurated(text,name);
+  if(/^\s*domain_name\s*,\s*ip_address/i.test(t))return parseList(text,'csv-domain-ip',name,'','',name);
+  return parseList(text,'domains-txt',name,'','',name);
+}
+G.ZBI={T,NETWORK,IocSet,inferType,normalise,parseCurated,parseStix,parseList,parseAny,searchBytes,sharedService,SHARED_REASON,validAt};
+})(typeof globalThis!=='undefined'?globalThis:window);
+
+/* Minimal read-only SQLite file reader (rowid tables) with WAL replay. No dependencies, no code execution. */
+(function(G){
+'use strict';
+const MAGIC='SQLite format 3\u0000';
+class SqliteError extends Error{}
+function varint(b,p){let v=0n,n=0;let x=0;
+  // fast path for up to 7 bytes within Number range
+  let r=0;for(let i=0;i<8;i++){const c=b[p+i];if(c===undefined)throw new SqliteError('truncated varint');if(i<8){if(c&0x80){r=r*128+(c&0x7f);continue}r=r*128+c;return [r,i+1]}}
+  // 9th byte uses all 8 bits
+  const c=b[p+8];if(c===undefined)throw new SqliteError('truncated varint');
+  r=r*256+c; return [r,9];
+}
+class Sqlite{
+  constructor(bytes,wal){
+    if(bytes.length<100||String.fromCharCode(...bytes.subarray(0,16))!==MAGIC)throw new SqliteError('not a SQLite database');
+    const dv=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength);
+    let ps=dv.getUint16(16);ps=ps===1?65536:ps;
+    if(ps<512||ps>65536||(ps&(ps-1)))throw new SqliteError('unsupported page size');
+    this.bytes=bytes;this.ps=ps;this.reserved=bytes[20];this.U=ps-this.reserved;
+    this.enc=dv.getUint32(56)||1; if(![1,2,3].includes(this.enc))throw new SqliteError('unsupported text encoding');
+    this.pages=Math.floor(bytes.length/ps); const hdrPages=dv.getUint32(28); if(hdrPages>0&&hdrPages<=this.pages&&dv.getUint32(24)===dv.getUint32(92))this.pages=hdrPages;
+    this.walMap=null;this.issues=[];this.walFrames=0;
+    if(wal&&wal.length)this._applyWal(wal);
+    this._schema=null;
+  }
+  _applyWal(w){
+    const dv=new DataView(w.buffer,w.byteOffset,w.byteLength);
+    if(w.length<32){this.issues.push('truncated WAL header');return}
+    const magic=dv.getUint32(0),ver=dv.getUint32(4),page=dv.getUint32(8);
+    if((magic!==0x377f0682&&magic!==0x377f0683)||ver!==3007000||page!==this.ps){this.issues.push('unsupported or mismatched WAL header');return}
+    const le=magic===0x377f0682;
+    const sum=(a,b,from,len)=>{for(let i=from;i<from+len;i+=8){const x=dv.getUint32(i,le),y=dv.getUint32(i+4,le);a=(a+x+b)>>>0;b=(b+y+a)>>>0}return [a,b]};
+    const s1=dv.getUint32(16),s2=dv.getUint32(20);
+    let [a,b]=sum(0,0,0,24);
+    if(a!==dv.getUint32(24)||b!==dv.getUint32(28)){this.issues.push('WAL header checksum failed');return}
+    let pos=32,committedEnd=0,lastSize=0;const frames=[];
+    while(pos<w.length){
+      if(pos+24+page>w.length){this.issues.push('truncated WAL frame');break}
+      const no=dv.getUint32(pos),size=dv.getUint32(pos+4);
+      if(dv.getUint32(pos+8)!==s1||dv.getUint32(pos+12)!==s2)break;
+      [a,b]=sum(a,b,pos,8);[a,b]=sum(a,b,pos+24,page);
+      if(a!==dv.getUint32(pos+16)||b!==dv.getUint32(pos+20)){this.issues.push('WAL frame checksum failed');break}
+      frames.push([no,pos+24]);pos+=24+page;
+      if(size){committedEnd=frames.length;lastSize=size}
+    }
+    if(!committedEnd)return;
+    this.walMap=new Map();for(let i=0;i<committedEnd;i++)this.walMap.set(frames[i][0],frames[i][1]);
+    this.walFrames=committedEnd; this._walBytes=w; if(lastSize>this.pages)this.pages=lastSize;
+  }
+  page(n){
+    if(!(n>=1)||n>this.pages||n>0xffffff)throw new SqliteError('page out of range');
+    if(this.walMap&&this.walMap.has(n)){const o=this.walMap.get(n);return this._walBytes.subarray(o,o+this.ps)}
+    const o=(n-1)*this.ps; if(o+this.ps>this.bytes.length)throw new SqliteError('page beyond end of file');
+    return this.bytes.subarray(o,o+this.ps);
+  }
+  _text(b){
+    if(this.enc===1)return new TextDecoder('utf-8').decode(b);
+    if(this.enc===2)return new TextDecoder('utf-16le').decode(b);
+    const s=new Uint8Array(b.length&~1);for(let i=0;i<s.length;i+=2){s[i]=b[i+1];s[i+1]=b[i]}return new TextDecoder('utf-16le').decode(s);
+  }
+  _record(b){
+    const [hs,n0]=varint(b,0);if(hs>b.length)throw new SqliteError('bad record header');
+    const types=[];let p=n0;while(p<hs){const [t,n]=varint(b,p);types.push(t);p+=n}
+    const out=[];let o=hs;const dv=new DataView(b.buffer,b.byteOffset,b.byteLength);
+    for(const t of types){
+      let v=null;
+      if(t===0)v=null;
+      else if(t>=1&&t<=6){const len=[0,1,2,3,4,6,8][t];if(o+len>b.length)throw new SqliteError('truncated record');
+        if(t===6){const x=dv.getBigInt64(o);v=(x>=-9007199254740991n&&x<=9007199254740991n)?Number(x):x}
+        else{let x=0;for(let i=0;i<len;i++)x=x*256+b[o+i];if(b[o]&0x80)x-=Math.pow(2,8*len);v=x}
+        o+=len}
+      else if(t===7){if(o+8>b.length)throw new SqliteError('truncated record');v=dv.getFloat64(o);o+=8}
+      else if(t===8)v=0;else if(t===9)v=1;
+      else if(t>=12){const len=t%2===0?(t-12)/2:(t-13)/2;if(o+len>b.length)throw new SqliteError('truncated record');
+        const raw=b.subarray(o,o+len);v=t%2===0?raw:this._text(raw);o+=len}
+      else throw new SqliteError('reserved serial type');
+      out.push(v);
+    }
+    return out;
+  }
+  /* visit every cell payload of a table b-tree */
+  *_cells(root,seen){
+    const stack=[root];let count=0;
+    while(stack.length){
+      const n=stack.pop();
+      if(seen.has(n))throw new SqliteError('page loop');
+      seen.add(n);
+      const pg=this.page(n);const off=n===1?100:0;const type=pg[off];
+      const dv=new DataView(pg.buffer,pg.byteOffset,pg.byteLength);
+      const cells=dv.getUint16(off+3);
+      if(type===0x05){
+        const right=dv.getUint32(off+8);const kids=[];
+        for(let i=0;i<cells;i++){const cp=dv.getUint16(off+12+i*2);if(cp+4>this.ps)throw new SqliteError('bad cell pointer');kids.push(dv.getUint32(cp))}
+        kids.push(right);for(let i=kids.length-1;i>=0;i--)stack.push(kids[i]);
+      }else if(type===0x0d){
+        for(let i=0;i<cells;i++){
+          const cp=dv.getUint16(off+8+i*2);if(cp>=this.ps)throw new SqliteError('bad cell pointer');
+          const [P,n1]=varint(pg,cp);const [rowid,n2]=varint(pg,cp+n1);let p=cp+n1+n2;
+          const U=this.U,X=U-35;let local;
+          if(P<=X)local=P;else{const M=Math.floor((U-12)*32/255)-23;const K=M+((P-M)%(U-4));local=K<=X?K:M}
+          if(p+local>this.ps)throw new SqliteError('cell overflows page');
+          let payload;
+          if(local===P)payload=pg.subarray(p,p+P);
+          else{
+            if(P>64*1024*1024)throw new SqliteError('record too large');
+            payload=new Uint8Array(P);payload.set(pg.subarray(p,p+local),0);let got=local;
+            let next=dv.getUint32(p+local),hops=0;
+            while(got<P){
+              if(!next||hops++>200000)throw new SqliteError('bad overflow chain');
+              const op=this.page(next);const odv=new DataView(op.buffer,op.byteOffset,op.byteLength);
+              const take=Math.min(P-got,U-4);payload.set(op.subarray(4,4+take),got);got+=take;next=odv.getUint32(0);
+            }
+          }
+          yield [rowid,payload];
+        }
+      }else if(type===0x0a||type===0x02){throw new SqliteError('index b-tree (WITHOUT ROWID table) is not supported')}
+      else throw new SqliteError('unexpected page type '+type);
+    }
+  }
+  schema(){
+    if(this._schema)return this._schema;
+    const out=[];
+    for(const [,payload] of this._cells(1,new Set())){
+      try{const r=this._record(payload);out.push({type:r[0],name:r[1],tbl:r[2],root:r[3],sql:r[4]||''})}catch(e){this.issues.push('schema record unreadable')}
+    }
+    return this._schema=out;
+  }
+  tables(){return this.schema().filter(s=>s.type==='table'&&s.name&&!/^sqlite_/.test(s.name)).map(s=>s.name)}
+  hasTable(n){return this.schema().some(s=>s.type==='table'&&s.name.toLowerCase()===n.toLowerCase())}
+  info(name){
+    const s=this.schema().find(x=>x.type==='table'&&x.name.toLowerCase()===name.toLowerCase());if(!s)return null;
+    if(s.info)return s.info;
+    const sql=s.sql||'';const virt=/^\s*create\s+virtual\s+table/i.test(sql);
+    const open=sql.indexOf('(');const close=sql.lastIndexOf(')');
+    const cols=[];let rowidAlias=-1;
+    if(open>=0&&close>open){
+      const body=sql.slice(open+1,close);const parts=[];let depth=0,cur='',q='';
+      for(const c of body){
+        if(q){cur+=c;if(c===q)q='';continue}
+        if(c==="'"||c==='"'||c==='`'){q=c;cur+=c;continue}
+        if(c==='['){q=']';cur+=c;continue}
+        if(c==='(')depth++;if(c===')')depth--;
+        if(c===','&&depth===0){parts.push(cur);cur=''}else cur+=c;
+      }
+      if(cur.trim())parts.push(cur);
+      for(const part of parts){
+        const t=part.trim();if(!t||/^(constraint|primary|unique|foreign|check)\b/i.test(t))continue;
+        const m=/^("([^"]+)"|`([^`]+)`|\[([^\]]+)\]|'([^']+)'|(\S+))/.exec(t);if(!m)continue;
+        const nm=m[2]||m[3]||m[4]||m[5]||m[6];cols.push(nm.toLowerCase());
+        if(/\binteger\s+primary\s+key\b/i.test(t.slice(m[0].length))&&!/\bdesc\b/i.test(t))rowidAlias=cols.length-1;
+      }
+    }
+    const withoutRowid=/\)\s*without\s+rowid\s*;?\s*$/i.test(sql);
+    return s.info={cols,rowidAlias,virtual:virt||s.root===0,withoutRowid,root:s.root};
+  }
+  /* yields arrays of the requested columns (null when the column is absent). */
+  *select(table,want,maxRows){
+    const info=this.info(table);if(!info)throw new SqliteError('no such table: '+table);
+    if(info.virtual)throw new SqliteError('virtual table '+table+' cannot be read');
+    if(info.withoutRowid)throw new SqliteError('WITHOUT ROWID table '+table+' is not supported');
+    const idx=want.map(w=>info.cols.indexOf(w.toLowerCase()));
+    const missing=want.filter((w,i)=>idx[i]<0);
+    if(missing.length===want.length)throw new SqliteError('none of the expected columns exist in '+table);
+    let n=0;maxRows=maxRows||5000000;
+    for(const [rowid,payload] of this._cells(info.root,new Set())){
+      let rec;try{rec=this._record(payload)}catch(e){this.issues.push('unreadable record in '+table);continue}
+      if(info.rowidAlias>=0&&rec[info.rowidAlias]===null)rec[info.rowidAlias]=rowid;
+      yield idx.map(i=>i<0?null:(rec[i]===undefined?null:rec[i]));
+      if(++n>=maxRows){this.issues.push('row limit reached in '+table);return}
+    }
+  }
+}
+G.ZBS={Sqlite,SqliteError};
+})(typeof globalThis!=='undefined'?globalThis:window);
+
+/* Property lists, tar, and the password-based backup crypto (WebCrypto only). */
+(function(G){
+'use strict';
+const subtle=G.crypto&&G.crypto.subtle;
+/* ---------- binary property list ---------- */
+function bplist(b){
+  const dv=new DataView(b.buffer,b.byteOffset,b.byteLength);
+  if(b.length<40||String.fromCharCode(...b.subarray(0,6))!=='bplist')throw new Error('not a binary property list');
+  const t=b.length-32, offSize=b[t+6], refSize=b[t+7];
+  const n=Number(dv.getBigUint64(t+8)), top=Number(dv.getBigUint64(t+16)), tab=Number(dv.getBigUint64(t+24));
+  if(n>1000000||offSize<1||offSize>8||refSize<1||refSize>8||tab+n*offSize>t)throw new Error('malformed property list');
+  const uint=(p,len)=>{let x=0;for(let i=0;i<len;i++)x=x*256+b[p+i];return x};
+  const cache=new Map();let budget=2000000;
+  function obj(i,depth){
+    if(depth>64||--budget<0)throw new Error('property list too complex');
+    if(cache.has(i)&&typeof cache.get(i)!=='object')return cache.get(i);
+    const p=uint(tab+i*offSize,offSize);const m=b[p];const hi=m>>4,lo=m&15;
+    const len=(q)=>{if(lo!==15)return [lo,q];const m2=b[q];const sz=1<<(m2&15);return [uint(q+1,sz),q+1+sz]};
+    switch(hi){
+      case 0:return lo===8?false:lo===9?true:null;
+      case 1:{const sz=1<<lo;return sz<=6?uint(p+1,sz):Number(dv.getBigInt64(p+1))}
+      case 2:return lo===2?dv.getFloat32(p+1):dv.getFloat64(p+1);
+      case 3:return new Date((dv.getFloat64(p+1)+978307200)*1000);
+      case 4:{const [l,q]=len(p+1);return b.slice(q,q+l)}
+      case 5:{const [l,q]=len(p+1);return String.fromCharCode(...b.subarray(q,q+l))}
+      case 6:{const [l,q]=len(p+1);let s='';for(let k=0;k<l;k++)s+=String.fromCharCode(dv.getUint16(q+2*k));return s}
+      case 8:return {uid:uint(p+1,lo+1)};
+      case 10:{const [l,q]=len(p+1);const a=[];for(let k=0;k<l;k++)a.push(obj(uint(q+k*refSize,refSize),depth+1));return a}
+      case 13:{const [l,q]=len(p+1);const o={};for(let k=0;k<l;k++){const key=obj(uint(q+k*refSize,refSize),depth+1);o[key]=obj(uint(q+(l+k)*refSize,refSize),depth+1)}return o}
+    }
+    throw new Error('unsupported property list object');
+  }
+  return obj(top,0);
+}
+
+/* XML property list (small, no DOM so it also runs outside a browser) */
+function xmlplist(text){
+  text=text.replace(/<\?xml[^>]*\?>/g,'').replace(/<!DOCTYPE[^>]*>/gi,'').replace(/<\!--[\s\S]*?-->/g,'');
+  const re=/<(\/?)([a-zA-Z]+)\s*(\/?)>|([^<]+)/g;let m,depth=0;
+  const stack=[];let key=null,root,got=false;
+  const unesc=s=>s.replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&amp;/g,'&');
+  const put=v=>{if(!stack.length){root=v;got=true;return}const top=stack[stack.length-1];if(Array.isArray(top))top.push(v);else{top[key]=v;key=null}};
+  let pending=null;
+  while((m=re.exec(text))){
+    if(++depth>2000000)throw new Error('property list too large');
+    if(m[4]!==undefined){if(pending!==null)pending.t+=m[4];continue}
+    const close=m[1]==='/',name=m[2],selfc=m[3]==='/';
+    if(selfc){if(name==='true')put(true);else if(name==='false')put(false);else if(name==='dict')put({});else if(name==='array')put([]);continue}
+    if(!close){
+      if(name==='plist')continue;
+      if(name==='dict'){const o={};put(o);stack.push(o)}
+      else if(name==='array'){const a=[];put(a);stack.push(a)}
+      else pending={n:name,t:''};
+      if(stack.length>64)throw new Error('property list too deep');
+    }else{
+      if(name==='dict'||name==='array'){stack.pop();continue}
+      if(name==='plist')continue;
+      if(!pending||pending.n!==name)continue;
+      const t=pending.t;pending=null;
+      if(name==='key'){key=unesc(t)}
+      else if(name==='string')put(unesc(t));
+      else if(name==='integer')put(Number(t.trim()));
+      else if(name==='real')put(parseFloat(t));
+      else if(name==='date')put(new Date(t.trim()));
+      else if(name==='data'){const b=atob(t.replace(/\s+/g,''));const o=new Uint8Array(b.length);for(let i=0;i<b.length;i++)o[i]=b.charCodeAt(i);put(o)}
+    }
+  }
+  if(!got)throw new Error('not a property list');
+  return root;
+}
+function plist(b){return (b.length>6&&String.fromCharCode(...b.subarray(0,6))==='bplist')?bplist(b):xmlplist(new TextDecoder().decode(b))}
+/* NSKeyedArchiver: resolve the root object, following UIDs */
+function unarchive(plist){
+  const objs=plist.$objects,top=plist.$top;if(!Array.isArray(objs)||!top)throw new Error('not a keyed archive');
+  const res=(v,d)=>{if(d>32)throw new Error('archive too deep');
+    if(v&&typeof v==='object'&&!(v instanceof Uint8Array)&&!Array.isArray(v)&&'uid' in v&&Object.keys(v).length===1)return res(objs[v.uid],d+1);
+    return v};
+  const root=res(top.root,0);if(!root||typeof root!=='object')throw new Error('empty archive');
+  const out={};for(const k of Object.keys(root)){if(k==='$class')continue;let v=res(root[k],0);
+    if(v&&typeof v==='object'&&v['NS.data']instanceof Uint8Array)v=v['NS.data'];out[k]=v}
+  return out;
+}
+/* ---------- iOS backup keys ---------- */
+async function pbkdf2(hash,password,salt,iter,len){
+  const k=await subtle.importKey('raw',password,'PBKDF2',false,['deriveBits']);
+  return new Uint8Array(await subtle.deriveBits({name:'PBKDF2',hash,salt,iterations:iter},k,len*8));
+}
+async function unwrapKey(kek,wrapped){
+  const k=await subtle.importKey('raw',kek,'AES-KW',false,['unwrapKey']);
+  const key=await subtle.unwrapKey('raw',wrapped,k,'AES-KW',{name:'AES-CBC'},true,['decrypt']);
+  return new Uint8Array(await subtle.exportKey('raw',key));
+}
+async function iosKeys(blob,password,progress){
+  if(!(blob instanceof Uint8Array)||blob.length>1048576)throw new Error('invalid backup keybag');
+  if(!password)throw new Error('encrypted iPhone backup needs the backup password');
+  const dv=new DataView(blob.buffer,blob.byteOffset,blob.byteLength);
+  const header={},groups=[];let cur=null,uuids=0,o=0;
+  const tag=p=>String.fromCharCode(blob[p],blob[p+1],blob[p+2],blob[p+3]);
+  while(o<blob.length){
+    if(o+8>blob.length)throw new Error('truncated keybag');
+    const tg=tag(o),size=dv.getUint32(o+4);o+=8;
+    if(size>4096||o+size>blob.length)throw new Error('invalid keybag record');
+    const val=blob.slice(o,o+size);o+=size;
+    if(tg==='UUID'){uuids++;if(uuids>65)throw new Error('keybag class limit exceeded');if(uuids>1){cur={};groups.push(cur)}}
+    (cur===null?header:cur)[tg]=val;
+  }
+  const num=(m,t)=>{const r=m[t];if(!(r instanceof Uint8Array)||r.length!==4)throw new Error('missing keybag number');return new DataView(r.buffer,r.byteOffset,4).getUint32(0)};
+  let secret=new TextEncoder().encode(password);
+  for(const [hash,st,ct] of [['SHA-256','DPSL','DPIC'],['SHA-1','SALT','ITER']]){
+    if(st==='DPSL'&&!(st in header))continue;
+    const salt=header[st],count=num(header,ct);
+    if(!salt||salt.length<1||salt.length>128||count<1||count>20000000)throw new Error('unsupported keybag derivation parameters');
+    if(progress)progress('Deriving the backup key ('+count.toLocaleString()+' rounds)…');
+    secret=await pbkdf2(hash,secret,salt,count,32);
+  }
+  const keys=new Map();
+  for(const g of groups){
+    try{if(num(g,'WRAP')===2&&g.WPKY&&g.WPKY.length===40)keys.set(num(g,'CLAS'),await unwrapKey(secret,g.WPKY))}catch(e){}
+  }
+  if(!keys.size)throw new Error('incorrect password or unsupported/damaged keybag');
+  return keys;
+}
+async function iosFileKey(keys,wrapped){
+  if(!(wrapped instanceof Uint8Array)||wrapped.length!==44)throw new Error('invalid wrapped backup file key');
+  const cls=new DataView(wrapped.buffer,wrapped.byteOffset,4).getUint32(0,true);
+  if(!keys.has(cls))throw new Error('file protection class could not be unlocked');
+  try{return await unwrapKey(keys.get(cls),wrapped.slice(4))}catch(e){throw new Error('backup file key could not be verified')}
+}
+async function cbcDecrypt(keyBytes,data,iv){
+  if(data.length%16||!data.length)throw new Error('invalid encrypted block length');
+  const key=await subtle.importKey('raw',keyBytes,'AES-CBC',false,['decrypt']);
+  try{return new Uint8Array(await subtle.decrypt({name:'AES-CBC',iv:iv||new Uint8Array(16)},key,data))}
+  catch(e){throw new Error('invalid password or damaged encrypted backup')}
+}
+/* ---------- Android .ab backup ---------- */
+async function inflate(data){
+  const ds=new DecompressionStream('deflate');const w=ds.writable.getWriter();w.write(data);w.close();
+  return new Uint8Array(await new Response(ds.readable).arrayBuffer());
+}
+function hex(s){if(!/^([0-9a-f]{2})*$/i.test(s))throw new Error('invalid header');const o=new Uint8Array(s.length/2);for(let i=0;i<o.length;i++)o[i]=parseInt(s.substr(i*2,2),16);return o}
+async function androidBackup(bytes,password){
+  const nl=[];let p=0;for(let i=0;i<4;i++){const e=bytes.indexOf(10,p);if(e<0)throw new Error('not an Android backup');nl.push(String.fromCharCode(...bytes.subarray(p,e)));p=e+1}
+  if(nl[0]!=='ANDROID BACKUP')throw new Error('not an Android backup');
+  const compressed=nl[2]==='1',enc=nl[3];let body=bytes.subarray(p);
+  if(enc==='AES-256'){
+    if(!password)throw new Error('encrypted SMS backup needs its password');
+    const parts=[];let q=0;for(let i=0;i<5;i++){const e=body.indexOf(10,q);if(e<0||e-q>2048)throw new Error('invalid encryption header');parts.push(String.fromCharCode(...body.subarray(q,e)));q=e+1}
+    const [salt,cksalt,rounds,iv,wrapped]=[hex(parts[0]),hex(parts[1]),parseInt(parts[2],10),hex(parts[3]),hex(parts[4])];
+    if(!(rounds>=1&&rounds<=1000000)||salt.length!==64||cksalt.length!==64||wrapped.length>256)throw new Error('invalid encryption header');
+    const pw=new TextEncoder().encode(password);
+    const k=await pbkdf2('SHA-1',pw,salt,rounds,32);
+    const blob=await unpadCbc(k,wrapped,iv);
+    const f=[];let o=0;for(const want of [16,32,32]){if(o>=blob.length||blob[o]!==want)throw new Error('invalid password or master-key record');f.push(blob.slice(o+1,o+1+want));o+=1+want}
+    if(o!==blob.length)throw new Error('invalid master-key record');
+    const [dataIv,dataKey,checksum]=f;
+    const chars=[...dataKey].map(x=>String.fromCharCode(x<128?x:0xff00+x)).join('');
+    const actual=await pbkdf2('SHA-1',new TextEncoder().encode(chars),cksalt,rounds,32);
+    if(actual.length!==checksum.length||actual.some((x,i)=>x!==checksum[i]))throw new Error('invalid password or master-key checksum');
+    body=await unpadCbc(dataKey,body.subarray(q),dataIv);
+  }else if(enc!=='none')throw new Error('unsupported backup encryption');
+  return compressed?await inflate(body):body;
+}
+async function unpadCbc(key,data,iv){return cbcDecrypt(key,data instanceof Uint8Array?data.slice():data,iv)}
+/* ---------- tar ---------- */
+function* tar(b){
+  let o=0;const dec=new TextDecoder();
+  const str=(s,l)=>{const a=b.subarray(s,s+l);const z=a.indexOf(0);return dec.decode(z<0?a:a.subarray(0,z))};
+  while(o+512<=b.length){
+    if(b.subarray(o,o+512).every(x=>x===0))break;
+    const name=str(o,100),prefix=str(o+345,155),size=parseInt(str(o+124,12).trim()||'0',8),type=String.fromCharCode(b[o+156]||48);
+    if(!(size>=0)||o+512+size>b.length+511)break;
+    const data=b.subarray(o+512,o+512+size);
+    if(type==='0'||type==='\0')yield {name:(prefix?prefix+'/':'')+name,data};
+    o+=512+Math.ceil(size/512)*512;
+  }
+}
+async function sha256hex(bytes){const d=new Uint8Array(await subtle.digest('SHA-256',bytes));let s='';for(const x of d)s+=x.toString(16).padStart(2,'0');return s}
+G.ZBC={plist,xmlplist,bplist,unarchive,iosKeys,iosFileKey,cbcDecrypt,androidBackup,tar,sha256hex,inflate};
+})(typeof globalThis!=='undefined'?globalThis:window);
+
+/* Readers and result model. Browser port of the idea of Zero Breach Toolkit (Apache-2.0): see NOTICE.md.
+   Everything here only reads bytes the user handed to the page. Nothing is sent anywhere. */
+(function(G){
+'use strict';
+const {T,IocSet,searchBytes}=G.ZBI, {Sqlite}=G.ZBS, C=G.ZBC;
+const EV={ON_DISK:'on-disk',ON_DEVICE:'on-device',FILE_PATTERN:'file-pattern',PERSISTENCE:'persistence',COMMAND:'ran-command',EXECUTION:'execution-record',INVENTORY:'inventory-record',
+  CONTACTED:'contacted',RECEIVED:'received',DEVICE_LOG:'device-log',DNS:'dns-record',ATTEMPTED:'attempted',CONFIGURED:'configured',REFERENCED:'referenced'};
+const ORDER=Object.values(EV).sort((a,b)=>rank(a)-rank(b));
+function rank(e){return ['on-disk','on-device','file-pattern','persistence','ran-command','execution-record','inventory-record','contacted','received','device-log','dns-record','attempted','configured','referenced'].indexOf(e)}
+const isSerious=e=>e!==EV.REFERENCED;
+const EV_TEXT={
+ 'on-disk':'a file has the fingerprint of a published spyware sample (conclusive)',
+ 'on-device':'an app, certificate, file or setting that researchers name is on the device',
+ 'persistence':'the name is registered to start automatically',
+ 'ran-command':'a command or script that names it ran here (it may be a researcher\'s own command)',
+ 'execution-record':'a historical execution record names it',
+ 'inventory-record':'a historical file inventory names it (execution is not established)',
+ 'contacted':'the device demonstrably talked to it (for example a cookie it set or a completed visit)',
+ 'received':'a message that arrived on the device contains it (opening it is not established)',
+ 'device-log':'the device\'s own logs or records name it',
+ 'dns-record':'a name lookup was recorded (contact is not verified)',
+ 'attempted':'something tried to reach it and was blocked or did not complete',
+ 'configured':'it appears in local configuration',
+ 'referenced':'it appears in saved content, which is usually not contact (often an article or blocklist about it)'};
+
+class Result{
+  constructor(){this.hits=[];this.leads=[];this.gaps=new Map();this.ranChecks=new Set();this.notes=[];this.checked=0;this.files=0;this.bytes=0;this.inputs=[];this._seen=new Set();this.capped=new Map()}
+  ran(c){this.ranChecks.add(c)}
+  gap(check,reason){const k=check+'|'+reason;const g=this.gaps.get(k);if(g)g.count++;else this.gaps.set(k,{check,reason,count:1})}
+  note(t){if(!this.notes.includes(t))this.notes.push(t)}
+  hit(h){
+    const key=[h.ind.type,h.ind.value,h.evidence,h.artifact,h.location].join('|');
+    if(this._seen.has(key))return;this._seen.add(key);
+    const ck=h.ind.value+'|'+h.evidence+'|'+h.artifact;const n=(this.capped.get(ck)||0)+1;this.capped.set(ck,n);
+    if(n>25){return}
+    this.hits.push(h);
+  }
+  lead(l){const k=l.check+'|'+l.location+'|'+l.text;if(this._seen.has(k))return;this._seen.add(k);this.leads.push(l)}
+}
+const tick=()=>new Promise(r=>setTimeout(r,0));
+function snippet(hay,idx,len){const s=Math.max(0,idx-50),e=Math.min(hay.length,idx+len+50);return hay.slice(s,e).replace(/[^\x20-\x7e]+/g,' ').trim()}
+function mkHit(ind,o){return {ind,indicator:ind.value,type:ind.type,tier:ind.tier,confidence:ind.confidence,source:ind.source,family:ind.family||'',evidence:o.evidence,location:o.location||'',artifact:o.artifact||'',detail:o.detail||'',observed:o.observed||'',profile:o.profile||'',context:o.context||''}}
+
+/* ---------- text and URL helpers ---------- */
+function scanText(ctx,text,o){
+  const lower=text.toLowerCase();
+  for(const h of ctx.iocs.search(lower)){
+    if(!G.ZBI.NETWORK.has(h.ind.type))continue;
+    ctx.res.hit(mkHit(h.ind,{...o,context:snippet(lower,h.positions[0],h.ind.value.length)}));
+  }
+}
+function hostIndicator(host,iocs){
+  host=host.toLowerCase().replace(/\.+$/,'');
+  if(!host)return null;
+  const ip=iocs.get(T.IP,host.replace(/^\[|\]$/g,'')); if(ip)return ip;
+  const labels=host.split('.');
+  for(let i=0;i<labels.length;i++){const d=iocs.get(T.DOMAIN,labels.slice(i).join('.'));if(d)return d}
+  return null;
+}
+/* Grade a URL by its host independently of path/query (as the desktop tool does) */
+function urlHits(ctx,url,hostGrade,o,reference){
+  url=String(url||'');let host=null,non=url,web=false;
+  try{
+    if(/[\u0000-\u001f\u007f]/.test(url))throw 0;
+    const u=new URL(url);web=u.protocol==='http:'||u.protocol==='https:';
+    if(web){if(/[\\ ]/.test(u.host))throw 0;host=hostIndicator(u.hostname,ctx.iocs);non=[u.username,u.password,u.pathname,u.search,u.hash].join(' ')}
+  }catch(e){host=null;non=url}
+  if(host)ctx.res.hit(mkHit(host,{...o,evidence:hostGrade,context:url.slice(0,160)}));
+  const lower=(non+' '+(reference||'')).toLowerCase();
+  for(const h of ctx.iocs.search(lower)){
+    if(!G.ZBI.NETWORK.has(h.ind.type))continue;
+    if(host&&host.value===h.ind.value)continue;
+    ctx.res.hit(mkHit(h.ind,{...o,evidence:EV.REFERENCED,context:url.slice(0,160)}));
+  }
+}
+const isoFromMs=ms=>{try{const d=new Date(ms);return isNaN(d)?'':d.toISOString().slice(0,19).replace('T',' ')+' UTC'}catch(e){return ''}};
+const chromeTime=v=>{v=Number(v);return v>0?isoFromMs(v/1000-11644473600000):''};
+const unixUs=v=>{v=Number(v);return v>0?isoFromMs(v/1000):''};
+const cfTime=v=>{v=Number(v);if(!(v>0))return '';if(v>1e11)v=v/1e9;return isoFromMs((v+978307200)*1000)};
+const unixS=v=>{v=Number(v);return v>0?isoFromMs(v*1000):''};
+
+/* ---------- database readers ---------- */
+function openDb(ctx,bytes,wal,check,path){
+  try{const db=new Sqlite(bytes,wal);return db}catch(e){ctx.res.gap(check,path+': '+e.message);return null}
+}
+function dbIssues(ctx,db,check,path){for(const i of new Set(db.issues))ctx.res.gap(check,path+': '+i)}
+async function eachRow(ctx,db,table,cols,fn,check,path){
+  let n=0;
+  try{
+    for(const row of db.select(table,cols)){
+      fn(row);ctx.res.checked++;
+      if(++n%3000===0){await tick();if(ctx.cancelled())throw new Error('cancelled')}
+    }
+  }catch(e){if(e.message==='cancelled')throw e;ctx.res.gap(check,path+' ('+table+'): '+e.message);return false}
+  return true;
+}
+const has=(db,t)=>db.hasTable(t);
+const colsOf=(db,t)=>{const i=db.info(t);return i?i.cols:[]};
+const pick=(db,t,wanted)=>wanted.filter(c=>colsOf(db,t).includes(c));
+
+async function chromiumHistory(ctx,db,path,label){
+  const A={artifact:path,profile:label};
+  const cols=pick(db,'urls',['url','title','last_visit_time','id']);
+  if(!cols.includes('url')){ctx.res.gap('browser:history',path+': no supported URL column');return}
+  /* visits: which URLs were visited here (vs only synced from another device) */
+  const local=new Map();let vOk=false;
+  if(has(db,'visits')){
+    const vc=colsOf(db,'visits');const want=['url'];if(vc.includes('originator_cache_guid'))want.push('originator_cache_guid');if(vc.includes('id'))want.push('id');
+    const src=new Map();
+    if(has(db,'visit_source')&&colsOf(db,'visit_source').includes('source')&&vc.includes('id')){await eachRow(ctx,db,'visit_source',['id','source'],r=>src.set(r[0],r[1]),'browser:history',path)}
+    if(want.includes('originator_cache_guid')||src.size){
+      vOk=await eachRow(ctx,db,'visits',want,r=>{
+        let foreign=false;const g=want.indexOf('originator_cache_guid');if(g>=0&&r[g])foreign=true;
+        const id=want.indexOf('id');if(id>=0&&src.get(r[id])===0)foreign=true;
+        local.set(r[0],(local.get(r[0])||false)||!foreign);
+      },'browser:history',path);
+    }
+  }
+  let sawSynced=false;
+  await eachRow(ctx,db,'urls',cols,r=>{
+    const rec=Object.fromEntries(cols.map((c,i)=>[c,r[i]]));
+    const url=String(rec.url||'');if(!url)return;
+    const hasVisit=cols.includes('last_visit_time')?Number(rec.last_visit_time||0)>0:true;
+    let grade=hasVisit?EV.CONTACTED:EV.REFERENCED, synced=false;
+    if(grade===EV.CONTACTED&&vOk&&cols.includes('id')&&local.has(rec.id)===false&&local.size&&false){}
+    if(grade===EV.CONTACTED&&vOk&&local.get(rec.id)===undefined){/* visits table keyed by urls.id */}
+    urlHits(ctx,url,grade,{...A,location:'history: '+url.slice(0,120),observed:chromeTime(rec.last_visit_time),detail:'a page in the browser history'},rec.title);
+  },'browser:history',path);
+  ctx.res.ran('browser:history');
+  /* downloads */
+  if(has(db,'downloads_url_chains')){
+    const dstate=new Map();
+    if(has(db,'downloads')&&colsOf(db,'downloads').includes('state')){await eachRow(ctx,db,'downloads',pick(db,'downloads',['id','state','received_bytes']),r=>dstate.set(r[0],[r[1],r[2]]),'browser:downloads',path)}
+    const cc=pick(db,'downloads_url_chains',['id','url']);
+    if(cc.length===2){await eachRow(ctx,db,'downloads_url_chains',cc,r=>{
+      const st=dstate.get(r[0]);const done=st?(st[0]===1&&Number(st[1])>0):true;
+      urlHits(ctx,r[1],done?EV.CONTACTED:EV.ATTEMPTED,{...A,location:'download chain: '+String(r[1]).slice(0,120),detail:'a download redirect chain'});
+    },'browser:downloads',path);ctx.res.ran('browser:downloads')}
+  }
+  if(has(db,'downloads')){
+    const dc=pick(db,'downloads',['tab_url','tab_referrer_url','site_url','referrer']);
+    if(dc.length)await eachRow(ctx,db,'downloads',dc,r=>{for(const v of r)if(v)urlHits(ctx,v,EV.REFERENCED,{...A,location:'download page: '+String(v).slice(0,120),detail:'page a download came from'})},'browser:downloads',path);
+  }
+  if(has(db,'keyword_search_terms')&&colsOf(db,'keyword_search_terms').includes('term'))
+    await eachRow(ctx,db,'keyword_search_terms',['term'],r=>scanText(ctx,String(r[0]||''),{...A,evidence:EV.REFERENCED,location:'search term',detail:'a search term typed in the browser'}),'browser:history',path);
+}
+async function chromiumCookies(ctx,db,path,label){
+  const cols=pick(db,'cookies',['host_key','name','creation_utc','top_frame_site_key']);
+  await eachRow(ctx,db,'cookies',cols,r=>{
+    const rec=Object.fromEntries(cols.map((c,i)=>[c,r[c==='x'?0:i]]));
+    const host=String(rec.host_key||'').replace(/^\./,'');
+    const ind=hostIndicator(host,ctx.iocs);
+    if(ind)ctx.res.hit(mkHit(ind,{artifact:path,profile:label,evidence:EV.CONTACTED,location:'cookie '+String(rec.name||'').slice(0,40)+' for '+host,observed:chromeTime(rec.creation_utc),detail:'the site set a cookie in this browser',context:host}));
+    if(rec.top_frame_site_key){const t=String(rec.top_frame_site_key);scanText(ctx,t,{artifact:path,profile:label,evidence:EV.REFERENCED,location:'cookie page: '+t.slice(0,80),detail:'the page the cookie was set on'})}
+  },'browser:cookies',path);
+  ctx.res.ran('browser:cookies');
+}
+async function chromiumFavicons(ctx,db,path,label){
+  if(!has(db,'favicons')||!colsOf(db,'favicons').includes('url'))return;
+  const bm=new Map();
+  if(has(db,'favicon_bitmaps')&&colsOf(db,'favicon_bitmaps').includes('icon_id')){
+    const bc=pick(db,'favicon_bitmaps',['icon_id','image_data']);
+    if(bc.includes('image_data'))await eachRow(ctx,db,'favicon_bitmaps',bc,r=>{if(r[1]&&r[1].length)bm.set(r[0],true)},'browser:favicons',path);
+  }
+  await eachRow(ctx,db,'favicons',pick(db,'favicons',['id','url']),r=>{
+    urlHits(ctx,r[1],bm.get(r[0])?EV.CONTACTED:EV.REFERENCED,{artifact:path,profile:label,location:'favicon: '+String(r[1]).slice(0,120),detail:'an icon the browser fetched'});
+  },'browser:favicons',path);
+  ctx.res.ran('browser:favicons');
+}
+async function firefoxPlaces(ctx,db,path,label){
+  const cols=pick(db,'moz_places',['url','title','last_visit_date','visit_count']);
+  await eachRow(ctx,db,'moz_places',cols,r=>{
+    const rec=Object.fromEntries(cols.map((c,i)=>[c,r[i]]));
+    const visited=Number(rec.last_visit_date||0)>0||Number(rec.visit_count||0)>0;
+    urlHits(ctx,rec.url,visited?EV.CONTACTED:EV.REFERENCED,{artifact:path,profile:label,location:'history: '+String(rec.url).slice(0,120),observed:unixUs(rec.last_visit_date),detail:'a page in the browser history'},rec.title);
+  },'browser:history',path);
+  ctx.res.ran('browser:history');
+}
+async function firefoxCookies(ctx,db,path,label){
+  const cols=pick(db,'moz_cookies',['host','name','creationTime','originAttributes']);
+  await eachRow(ctx,db,'moz_cookies',cols,r=>{
+    const rec=Object.fromEntries(cols.map((c,i)=>[c,r[i]]));
+    const host=String(rec.host||'').replace(/^\./,'');const ind=hostIndicator(host,ctx.iocs);
+    if(ind)ctx.res.hit(mkHit(ind,{artifact:path,profile:label,evidence:EV.CONTACTED,location:'cookie '+String(rec.name||'').slice(0,40)+' for '+host,observed:unixUs(rec.creationTime),detail:'the site set a cookie in this browser',context:host}));
+  },'browser:cookies',path);
+  ctx.res.ran('browser:cookies');
+}
+async function firefoxIcons(ctx,db,path,label){
+  if(!has(db,'moz_icons'))return;
+  await eachRow(ctx,db,'moz_icons',['icon_url'],r=>urlHits(ctx,r[0],EV.CONTACTED,{artifact:path,profile:label,location:'favicon: '+String(r[0]).slice(0,120),detail:'an icon the browser fetched'}),'browser:favicons',path);
+  ctx.res.ran('browser:favicons');
+}
+async function safariHistory(ctx,db,path,label,where){
+  const items=new Map();
+  if(!await eachRow(ctx,db,'history_items',['id','url'],r=>items.set(r[0],{url:r[1],ok:false,when:0,visited:false}),'browser:history',path))return;
+  if(has(db,'history_visits')){
+    const vc=colsOf(db,'history_visits');const cols=['history_item'];if(vc.includes('visit_time'))cols.push('visit_time');if(vc.includes('load_successful'))cols.push('load_successful');
+    await eachRow(ctx,db,'history_visits',cols,r=>{
+      const it=items.get(r[0]);if(!it)return;it.visited=true;
+      const ls=cols.indexOf('load_successful');const ok=ls<0?true:Number(r[ls])===1;
+      if(ok)it.ok=true;const vt=cols.indexOf('visit_time');if(vt>=0&&Number(r[vt])>it.when)it.when=Number(r[vt]);
+    },'browser:history',path);
+  }
+  for(const it of items.values()){
+    if(!it.url)continue;
+    const grade=it.visited?(it.ok?EV.CONTACTED:EV.ATTEMPTED):EV.REFERENCED;
+    urlHits(ctx,it.url,grade,{artifact:where||path,profile:label,location:'Safari history: '+String(it.url).slice(0,120),observed:cfTime(it.when),detail:'a page in Safari history'});
+  }
+  ctx.res.ran('browser:history');
+}
+async function sqliteUrlTable(ctx,db,path,label,table,col,grade,what){
+  if(!has(db,table)||!colsOf(db,table).includes(col))return false;
+  await eachRow(ctx,db,table,[col],r=>urlHits(ctx,r[0],grade,{artifact:path,profile:label,location:what+': '+String(r[0]).slice(0,120),detail:what}),'browser:'+table,path);
+  return true;
+}
+/* any other database: search every text cell, graded as saved content */
+async function genericDb(ctx,db,path,label,check){
+  let tables;try{tables=db.tables()}catch(e){ctx.res.gap(check||'database',path+': '+e.message);return}
+  for(const t of tables){
+    const info=db.info(t);if(!info||info.virtual||info.withoutRowid){ctx.res.gap(check||'database',path+' ('+t+'): table type not readable');continue}
+    let n=0;
+    try{
+      for(const row of db.select(t,info.cols)){
+        for(const v of row){
+          if(typeof v==='string'&&v.length>=4)scanText(ctx,v.length>200000?v.slice(0,200000):v,{artifact:path,profile:label,evidence:EV.REFERENCED,location:'table '+t,detail:'text stored in a database'});
+          else if(v instanceof Uint8Array&&v.length>=4&&v.length<2000000){for(const h of searchBytes(ctx.iocs,v))ctx.res.hit(mkHit(h.ind,{artifact:path,profile:label,evidence:EV.REFERENCED,location:'table '+t+' (binary)',detail:'bytes stored in a database'}))}
+        }
+        if(++n%2000===0){await tick();if(ctx.cancelled())throw new Error('cancelled')}
+      }
+    }catch(e){if(e.message==='cancelled')throw e;ctx.res.gap(check||'database',path+' ('+t+'): '+e.message)}
+  }
+  ctx.res.ran(check||'database');
+}
+async function readDatabase(ctx,entry,bytes,wal,labelOverride){
+  const path=entry.path,label=labelOverride||'';
+  const db=openDb(ctx,bytes,wal,'database',path);if(!db)return;
+  let tables;try{tables=db.tables().map(x=>x.toLowerCase())}catch(e){ctx.res.gap('database',path+': '+e.message);return}
+  const t=new Set(tables);let handled=false;
+  if(t.has('urls')&&t.has('visits')){await chromiumHistory(ctx,db,path,label);handled=true}
+  else if(t.has('cookies')&&colsOf(db,'cookies').includes('host_key')){await chromiumCookies(ctx,db,path,label);handled=true}
+  else if(t.has('favicons')&&t.has('icon_mapping')){await chromiumFavicons(ctx,db,path,label);handled=true}
+  else if(t.has('moz_places')){await firefoxPlaces(ctx,db,path,label);handled=true}
+  else if(t.has('moz_cookies')){await firefoxCookies(ctx,db,path,label);handled=true}
+  else if(t.has('moz_icons')){await firefoxIcons(ctx,db,path,label);handled=true}
+  else if(t.has('history_items')){await safariHistory(ctx,db,path,label);handled=true}
+  else if(t.has('message')&&t.has('handle')&&colsOf(db,'message').includes('text')){await iosMessages(ctx,db,path,path);handled=true}
+  else if(t.has('zprocess')){await iosDataUsage(ctx,db,path,path);handled=true}
+  if(handled){
+    /* Chromium history/cookie files also hold other URL tables */
+    dbIssues(ctx,db,'database',path);
+    return;
+  }
+  await genericDb(ctx,db,path,label);
+  dbIssues(ctx,db,'database',path);
+}
+async function iosMessages(ctx,db,path,where){
+  const cols=pick(db,'message',['text','date','is_from_me']);
+  if(!cols.includes('text')){ctx.res.gap('ios:messages',path+': no message text column');return}
+  const dir=cols.indexOf('is_from_me');
+  let unsupported=false;
+  await eachRow(ctx,db,'message',cols,r=>{
+    const text=r[0];if(typeof text!=='string'||text.length<4)return;
+    let grade=EV.REFERENCED;
+    if(dir>=0&&(r[dir]===0||r[dir]===1))grade=r[dir]===0?EV.RECEIVED:EV.REFERENCED;else unsupported=true;
+    scanText(ctx,text.slice(0,200000),{artifact:where,evidence:grade,location:'message',observed:cfTime(r[cols.indexOf('date')]),detail:'a link or address in a message'});
+  },'ios:messages',path);
+  if(unsupported)ctx.res.gap('ios:messages','message direction is unsupported; text remains a reference');
+  ctx.res.ran('ios:messages');
+}
+async function iosDataUsage(ctx,db,path,where){
+  const cols=pick(db,'ZPROCESS',['ZPROCNAME','ZBUNDLENAME','ZTIMESTAMP']);
+  if(!cols.includes('ZPROCNAME')&&!cols.includes('zprocname')){ctx.res.gap('ios:processes',path+': no process name column')}
+  const want=['ZPROCNAME','ZBUNDLENAME','ZTIMESTAMP'];
+  await eachRow(ctx,db,'ZPROCESS',want,r=>{
+    const name=typeof r[0]==='string'?r[0]:'';
+    if(name){const ind=ctx.iocs.get(T.PROC,name);
+      if(ind&&(ind.orig||ind.value)===name||ind&&ind.value===name.toLowerCase()&&(ind.orig===undefined))
+        ctx.res.hit(mkHit(ind,{artifact:where,evidence:EV.DEVICE_LOG,location:'process in data-usage records: '+name,observed:cfTime(r[2]),detail:'a process name the researchers list; identity is not file-content verification',context:name}))}
+    if(typeof r[1]==='string'&&r[1]){const ind=ctx.iocs.get(T.APP,r[1]);if(ind)ctx.res.hit(mkHit(ind,{artifact:where,evidence:EV.DEVICE_LOG,location:'bundle in data-usage records: '+r[1],observed:cfTime(r[2]),detail:'an app identifier the researchers list',context:r[1]}))}
+  },'ios:processes',path);
+  ctx.res.ran('ios:processes');
+}
+
+/* ---------- Safari binary cookies ---------- */
+function safariBinaryCookies(ctx,bytes,path){
+  const dv=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength);
+  try{
+    if(String.fromCharCode(...bytes.subarray(0,4))!=='cook')throw new Error('not a cookie file');
+    const pages=dv.getUint32(4);if(pages>100000)throw new Error('too many pages');
+    const sizes=[];for(let i=0;i<pages;i++)sizes.push(dv.getUint32(8+4*i));
+    let off=8+4*pages;const dec=new TextDecoder();
+    for(const sz of sizes){
+      const pg=bytes.subarray(off,off+sz);off+=sz;if(pg.length<12)continue;
+      const pd=new DataView(pg.buffer,pg.byteOffset,pg.byteLength);const n=pd.getUint32(4,true);
+      for(let i=0;i<n&&8+4*i<pg.length;i++){
+        const co=pd.getUint32(8+4*i,true);if(co+32>pg.length)continue;
+        const dOff=pd.getUint32(co+16,true),nOff=pd.getUint32(co+20,true);
+        const str=o=>{let e=co+o;while(e<pg.length&&pg[e]!==0)e++;return dec.decode(pg.subarray(co+o,e))};
+        const host=str(dOff).replace(/^\./,''),name=str(nOff);
+        const ind=hostIndicator(host,ctx.iocs);
+        if(ind){const created=pd.getFloat64(co+40,true);ctx.res.hit(mkHit(ind,{artifact:path,evidence:EV.CONTACTED,location:'Safari cookie '+name.slice(0,40)+' for '+host,observed:cfTime(created),detail:'the site set a cookie in this browser',context:host}))}
+      }
+    }
+    ctx.res.ran('browser:cookies');
+  }catch(e){ctx.res.gap('browser:cookies',path+': '+e.message)}
+}
+
+/* ---------- generic files ---------- */
+const TEXT_EXT=/\.(txt|log|json|jsonl|csv|tsv|xml|html?|js|css|md|conf|cfg|ini|yaml|yml|sh|bash|zsh|bat|cmd|ps1|py|plist|service|timer|desktop|list|rules|stix2?|ioc|reg|lnk\.txt|text)$/i;
+const TEXT_NAME=/^(hosts|crontab|authorized_keys|known_hosts|resolv\.conf|\.bash_history|\.zsh_history|\.bashrc|\.zshrc|\.profile|\.bash_profile|fish_history|consolehost_history\.txt|passwd|environment)$/i;
+const CACHE_PATH=/(^|\/)(cache|code cache|cache_data|gpucache|local storage|indexeddb|session storage|service worker|blob_storage|leveldb|sync data|storage|network)(\/|$)/i;
+const WIN_RECORD=/(\.pf$|\.hve$|\.evtx$|(^|\/)ntuser\.dat$|(^|\/)(sam|system|software|security|amcache\.hve)$|\.etl$)/i;
+const SKIP_HASH=/\.(png|jpe?g|gif|webp|ico|svg|mp3|mp4|mov|avi|mkv|wav|flac|ttf|otf|woff2?)$/i;
+const HOSTS_BLOCK=/^(0\.0\.0\.0|127\.\d+\.\d+\.\d+|::1?|0:0:0:0:0:0:0:[01])$/;
+const isSqliteBytes=b=>b.length>=100&&b[0]===0x53&&b[1]===0x51&&b[2]===0x4c&&b[3]===0x69&&String.fromCharCode(...b.subarray(0,15))==='SQLite format 3';
+const dec8=new TextDecoder('utf-8',{fatal:false});
+
+function textGrade(name,path){
+  const n=name.toLowerCase();
+  if(n==='hosts')return 'hosts';
+  if(/history/.test(n)&&/(bash|zsh|fish|consolehost|history)/.test(n)&&!/\.(sqlite|db)$/.test(n))return EV.COMMAND;
+  if(/(^|\/)(\.zsh_sessions|\.bash_sessions)(\/|$)/i.test(path))return EV.COMMAND;
+  if(/\.(service|timer|desktop)$/.test(n)||/(^|\/)(cron|crontab|cron\.d|launchagents|launchdaemons|autostart|systemd)(\/|$)/i.test(path)||/\.bashrc|\.zshrc|\.profile|\.bash_profile/.test(n))return EV.PERSISTENCE;
+  return EV.REFERENCED;
+}
+async function scanTextFile(ctx,entry,bytes,grade,detail){
+  let text=dec8.decode(bytes);
+  if(/\.plist$/i.test(entry.name)&&bytes.length>8&&String.fromCharCode(...bytes.subarray(0,6))==='bplist'){
+    try{text=JSON.stringify(C.plist(bytes),(k,v)=>v instanceof Uint8Array?dec8.decode(v):v)}catch(e){ctx.res.gap('files',entry.path+': '+e.message)}
+  }
+  if(grade==='hosts'){
+    for(const line of text.split(/\r?\n/)){
+      const l=line.split('#')[0].trim();if(!l)continue;
+      const parts=l.split(/\s+/);const addr=parts[0];
+      const lower=parts.slice(1).join(' ').toLowerCase();
+      for(const h of ctx.iocs.search(lower)){
+        if(!G.ZBI.NETWORK.has(h.ind.type))continue;
+        if(HOSTS_BLOCK.test(addr))continue; /* a block entry is protective */
+        ctx.res.hit(mkHit(h.ind,{artifact:entry.path,evidence:EV.CONFIGURED,location:'hosts entry '+addr,detail:'a hosts-file entry pointing it at a real address',context:l.slice(0,160)}));
+      }
+    }
+    ctx.res.ran('files:hosts');return;
+  }
+  scanText(ctx,text.length>64*1024*1024?text.slice(0,64*1024*1024):text,{artifact:entry.path,evidence:grade,location:entry.name,detail:detail||'text in a saved file'});
+  ctx.res.ran('files:text');
+}
+function nameChecks(ctx,entry){
+  const base=entry.name;
+  for(const ind of ctx.iocs.of(T.FNAME)){const want=ind.orig||ind.value;if(want===base){
+    ctx.res.lead({check:'files:names',location:entry.path,text:'a file name researchers list ('+base+'); a name alone is weak',why:'Ordinary software can use the same file name.'})}}
+  for(const ind of ctx.iocs.of(T.PATH)){const want=ind.orig||ind.value;if(('/'+entry.path).endsWith(want)&&want.length>2){
+    ctx.res.hit(mkHit(ind,{artifact:entry.path,evidence:EV.INVENTORY,location:entry.path,detail:'a file at a path the researchers tie to spyware (matched by its path inside the folder you chose)'}))}}
+}
+async function scanGeneric(ctx,entry,bytes,opts){
+  const name=entry.name,path=entry.path;opts=opts||{};
+  nameChecks(ctx,entry);
+  if(isSqliteBytes(bytes)){
+    let wal=null;if(ctx.sidecar){wal=await ctx.sidecar(entry,'-wal')}
+    await readDatabase(ctx,entry,bytes,wal,opts.label);return 'database';
+  }
+  if(/binarycookies$/i.test(name)){safariBinaryCookies(ctx,bytes,path);return 'cookies'}
+  const grade=opts.grade||textGrade(name,path);
+  const textual=TEXT_EXT.test(name)||TEXT_NAME.test(name)||opts.forceText;
+  /* hash first (cheap for small files) */
+  let kind='file';
+  if(!SKIP_HASH.test(name)&&bytes.length<=ctx.maxHashBytes){
+    const sha=await C.sha256hex(bytes);const ind=ctx.iocs.get(T.SHA256,sha);
+    ctx.res.ran('files:fingerprints');
+    if(ind)ctx.res.hit(mkHit(ind,{artifact:path,evidence:EV.ON_DISK,location:path,detail:'this file has the fingerprint of a published sample',context:sha}));
+  }else if(!SKIP_HASH.test(name)){ctx.res.gap('files:fingerprints',path+': larger than the '+Math.round(ctx.maxHashBytes/1048576)+' MiB limit, not fingerprinted')}
+  if(textual){await scanTextFile(ctx,entry,bytes,grade,opts.detail);kind='text'}
+  else if(WIN_RECORD.test(path)){
+    for(const h of searchBytes(ctx.iocs,bytes)){if(!G.ZBI.NETWORK.has(h.ind.type))continue;
+      ctx.res.hit(mkHit(h.ind,{artifact:path,evidence:EV.REFERENCED,location:name+' (raw strings)',detail:'a string inside a Windows record this page cannot decode',context:'raw match',}));}
+    ctx.res.gap('files:windows-records','Windows records (Prefetch, Amcache, registry hives, event logs) are searched for raw strings only; their records are not decoded, so a match here has weaker meaning and no match proves little');
+    kind='winrec';
+  }else if(CACHE_PATH.test(path)||bytes.length<=16*1024*1024){
+    if(bytes.length<=ctx.maxStringBytes){
+      for(const h of searchBytes(ctx.iocs,bytes)){if(!G.ZBI.NETWORK.has(h.ind.type))continue;
+        ctx.res.hit(mkHit(h.ind,{artifact:path,evidence:grade===EV.REFERENCED?EV.REFERENCED:grade,location:name+' ('+h.enc.join('+')+' strings)',detail:'a string inside a saved or cached file',context:'raw match'}))}
+      ctx.res.ran('files:strings');
+    }else ctx.res.gap('files:strings',path+': too large to search for strings');
+  }
+  return kind;
+}
+
+/* ---------- iPhone backup ---------- */
+class NeedPassword extends Error{}
+async function iosBackup(ctx,root,files){
+  const get=name=>files.get(root+name)||null;
+  const mdb=get('Manifest.db'),mpl=get('Manifest.plist');
+  let manifest={};
+  if(mpl){try{manifest=C.plist(await mpl.read())}catch(e){ctx.res.gap('ios:manifest','Manifest.plist: '+e.message)}}
+  else ctx.res.gap('ios:manifest','Manifest.plist is missing; the backup was read as unencrypted because its file list is readable without a key');
+  const encrypted=manifest.IsEncrypted===true;
+  let keys=null;
+  if(encrypted){
+    if(!ctx.password)throw new NeedPassword('This iPhone backup is encrypted. Enter its backup password to read it.');
+    ctx.progress('Unlocking the encrypted backup…');
+    try{keys=await C.iosKeys(manifest.BackupKeyBag,ctx.password,ctx.progress)}catch(e){ctx.res.gap('ios:manifest',e.message);throw new NeedPassword(e.message)}
+  }
+  let raw=await mdb.read();
+  if(encrypted){
+    try{raw=await C.cbcDecrypt(await C.iosFileKey(keys,manifest.ManifestKey),raw)}catch(e){ctx.res.gap('ios:manifest',e.message);throw new NeedPassword(e.message)}
+  }
+  let wal=null;const walEntry=get('Manifest.db-wal');
+  if(walEntry){if(encrypted)ctx.res.gap('ios:manifest','encrypted manifest WAL has no independent key metadata; not replayed');else wal=await walEntry.read()}
+  const db=openDb(ctx,raw,wal,'ios:manifest','Manifest.db');if(!db)return;
+  if(!db.hasTable('Files')){ctx.res.gap('ios:manifest','Manifest.db has no Files table');return}
+  const index=new Map(),inventory=[];
+  ok:{
+    const okRead=await eachRow(ctx,db,'Files',['fileID','domain','relativePath','flags','file'],r=>{
+      const [fid,domain,rel,flags,meta]=r;
+      if(flags!==1)return;
+      if(typeof fid!=='string'||!/^[0-9a-f]{40}$/.test(fid)||typeof domain!=='string'||typeof rel!=='string'){ctx.res.gap('ios:manifest','invalid manifest record');return}
+      index.set(domain+'\u0000'+rel,{fid,meta});inventory.push([domain,rel]);
+    },'ios:manifest','Manifest.db');
+    if(okRead)ctx.res.ran('ios:manifest');
+  }
+  ctx.res.note('iOS backup: '+inventory.length.toLocaleString()+' files listed in the manifest.');
+  if(!encrypted)ctx.res.note('This backup is unencrypted; some website and call history and other protected records may be unavailable. An owner-created encrypted local backup can provide more coverage.');
+  /* inventory: file names and paths */
+  for(const [domain,rel] of inventory){
+    const base=rel.slice(rel.lastIndexOf('/')+1);
+    for(const ind of ctx.iocs.of(T.FNAME)){if((ind.orig||ind.value)===base)ctx.res.hit(mkHit(ind,{artifact:'Manifest.db',evidence:EV.REFERENCED,location:domain+'/'+rel,detail:'filename in the backup inventory; names alone are not proof of compromise'}))}
+  }
+  if(ctx.iocs.size(T.FNAME))ctx.res.ran('ios:file-names');
+  async function artifact(domain,rel){
+    const e=index.get(domain+'\u0000'+rel);if(!e)return null;
+    const f=files.get(root+e.fid.slice(0,2)+'/'+e.fid)||files.get(root+e.fid);
+    if(!f){ctx.res.gap('ios:'+rel,domain+'/'+rel+': indexed but its backup payload is missing');return null}
+    let data=await f.read();
+    if(encrypted){
+      try{
+        const rec=C.unarchive(C.plist(e.meta));
+        if(!data.length)return data;
+        const key=await C.iosFileKey(keys,rec.EncryptionKey);
+        data=await C.cbcDecrypt(key,data);
+      }catch(err){ctx.res.gap('ios:'+rel,domain+'/'+rel+': '+err.message);return null}
+    }
+    return data;
+  }
+  const missing=[];
+  const targets=[
+    ['HomeDomain','Library/SMS/sms.db','ios:messages',async(b,p)=>{const d=openDb(ctx,b,null,'ios:messages',p);if(d){if(d.hasTable('message'))await iosMessages(ctx,d,p,p);else ctx.res.gap('ios:messages',p+': no message table');dbIssues(ctx,d,'ios:messages',p)}}],
+    ['HomeDomain','Library/Safari/History.db','ios:safari',async(b,p)=>{const d=openDb(ctx,b,null,'ios:safari',p);if(d){if(d.hasTable('history_items'))await safariHistory(ctx,d,p,'iPhone Safari',p);else ctx.res.gap('ios:safari',p+': no history table');dbIssues(ctx,d,'ios:safari',p)}}],
+    ['HomeDomain','Library/Safari/SafariTabs.db','ios:safari-tabs',async(b,p)=>{const d=openDb(ctx,b,null,'ios:safari-tabs',p);if(d){await sqliteUrlTable(ctx,d,p,'iPhone Safari','bookmarks','url',EV.REFERENCED,'open Safari tab or tab group');ctx.res.ran('ios:safari-tabs')}}],
+    ['WirelessDomain','Library/Databases/DataUsage.sqlite','ios:processes',async(b,p)=>{const d=openDb(ctx,b,null,'ios:processes',p);if(d){if(d.hasTable('ZPROCESS'))await iosDataUsage(ctx,d,p,p);else ctx.res.gap('ios:processes',p+': no process table');dbIssues(ctx,d,'ios:processes',p)}}],
+    ['AppDomainGroup-group.net.whatsapp.WhatsApp.shared','ChatStorage.sqlite','ios:whatsapp',async(b,p)=>{const d=openDb(ctx,b,null,'ios:whatsapp',p);if(d&&d.hasTable('ZWAMESSAGE')){
+        const cols=pick(d,'ZWAMESSAGE',['ZTEXT','ZISFROMME','ZMESSAGEDATE']);if(cols.includes('ZTEXT')){await eachRow(ctx,d,'ZWAMESSAGE',cols,r=>{if(typeof r[0]==='string'&&r[0].length>3){const fm=cols.indexOf('ZISFROMME');scanText(ctx,r[0].slice(0,100000),{artifact:p,evidence:fm>=0&&r[fm]===0?EV.RECEIVED:EV.REFERENCED,location:'WhatsApp message',observed:cfTime(r[cols.indexOf('ZMESSAGEDATE')]),detail:'a link or address in a WhatsApp message'})}},'ios:whatsapp',p);ctx.res.ran('ios:whatsapp')}}}],
+    ['AppDomain-com.google.chrome.ios','Library/Application Support/Google/Chrome/Default/History','ios:chrome',async(b,p)=>{const d=openDb(ctx,b,null,'ios:chrome',p);if(d){if(d.hasTable('urls'))await chromiumHistory(ctx,d,p,'iPhone Chrome');dbIssues(ctx,d,'ios:chrome',p)}}],
+  ];
+  for(const [domain,rel,check,fn] of targets){
+    if(!index.has(domain+'\u0000'+rel)){missing.push(rel);continue}
+    ctx.progress('Reading '+rel+'…');
+    try{const b=await artifact(domain,rel);if(b)await fn(b,domain+'/'+rel)}catch(e){if(e.message==='cancelled')throw e;ctx.res.gap(check,domain+'/'+rel+': '+e.message)}
+    await tick();
+  }
+  if(missing.length)ctx.res.note('Not in this backup (so not checked): '+missing.join(', ')+'.');
+  /* configuration profiles */
+  for(const [domain,rel] of inventory){
+    if(!/configurationprofiles/i.test(domain+rel)||!/\.(plist|stub)$/i.test(rel))continue;
+    try{
+      const b=await artifact(domain,rel);if(!b)continue;
+      let text='';try{text=JSON.stringify(C.plist(b),(k,v)=>v instanceof Uint8Array?dec8.decode(v):v)}catch(e){text=dec8.decode(b)}
+      for(const m of text.matchAll(/[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}/g)){
+        const ind=ctx.iocs.get(T.PROFILE,m[0]);
+        if(ind)ctx.res.hit(mkHit(ind,{artifact:domain+'/'+rel,evidence:EV.ON_DEVICE,location:'configuration profile '+m[0],detail:'a configuration profile the researchers name is installed',context:m[0]}));
+      }
+      ctx.res.ran('ios:profiles');
+    }catch(e){ctx.res.gap('ios:profiles',domain+'/'+rel+': '+e.message)}
+  }
+  ctx.res.gap('ios:other','Other app databases, sysdiagnose archives and extracted file systems are not read by the browser version; use the desktop tool for those');
+  return {encrypted,files:inventory.length};
+}
+
+/* ---------- AndroidQF collection ---------- */
+async function androidCollection(ctx,root,files){
+  const get=n=>files.get(root+n)||null;
+  const json=async n=>{const f=get(n);if(!f)return undefined;try{return JSON.parse(dec8.decode(await f.read()))}catch(e){ctx.res.gap('android:'+n,n+': '+e.message);return undefined}};
+  const pk=await json('packages.json');
+  const A=n=>({artifact:n});
+  if(Array.isArray(pk)){
+    let noHash=0,noCert=0;
+    for(const pkg of pk){
+      if(!pkg||typeof pkg.name!=='string'||!pkg.name){ctx.res.gap('android:packages','an app record has no valid package name');continue}
+      const name=pkg.name,where='app '+name;
+      let ind=ctx.iocs.get(T.APP,name);
+      if(ind)ctx.res.hit(mkHit(ind,{...A('packages.json'),evidence:EV.ON_DEVICE,location:where,detail:ind.tier==='stalkerware'?'a phone-monitoring app is installed: '+name+(ind.family?' ('+ind.family+')':'')+' - some are sold as family-safety apps':'an app the researchers name is installed: '+name}));
+      const fl=Array.isArray(pkg.files)?pkg.files:[];
+      for(const f of fl){
+        if(!f||typeof f!=='object'){noHash++;noCert++;continue}
+        const sha=String(f.sha256||'').toLowerCase();
+        if(!/^[0-9a-f]{64}$/.test(sha))noHash++;else{const i2=ctx.iocs.get(T.SHA256,sha);if(i2)ctx.res.hit(mkHit(i2,{...A('packages.json'),evidence:EV.ON_DEVICE,location:where+' ('+(f.path||'')+')',detail:'this app\'s file has the fingerprint of a published sample',context:sha}))}
+        const cert=f.certificate&&typeof f.certificate==='object'?f.certificate:{};
+        let any=false;
+        for(const k of ['Sha256','Sha1']){const v=String(cert[k]||'').replace(/:/g,'').toLowerCase();if(!v)continue;any=true;const i3=ctx.iocs.get(T.CERT,v);if(i3)ctx.res.hit(mkHit(i3,{...A('packages.json'),evidence:EV.ON_DEVICE,location:where,detail:'this app is signed with a certificate the researchers tie to spyware ('+k.toUpperCase()+')',context:v}))}
+        if(!any)noCert++;
+      }
+    }
+    ctx.res.checked+=pk.length;ctx.res.ran('android:packages');
+    if(noHash)ctx.res.gap('android:app-fingerprints',noHash+' app file(s) have no usable fingerprint, so they were not compared');
+    if(noCert&&ctx.iocs.size(T.CERT))ctx.res.gap('android:app-certificates',noCert+' app file(s) have no signing-certificate record, so they were not compared');
+    ctx.res.note('Android collection: '+pk.length+' installed apps listed.');
+  }else if(pk===undefined)ctx.res.gap('android:packages','packages.json is missing from this collection');
+  else ctx.res.gap('android:packages','app list must be a JSON list');
+  /* processes */
+  let pn=0;
+  const procs=get('processes.json');
+  const procName=(v,src)=>{
+    const name=String(v).slice(0,4096);if(!name)return;pn++;
+    const base=name.split('/').pop();
+    for(const cand of new Set([name,base,base.split(':')[0]])){
+      const ind=ctx.iocs.get(T.PROC,cand)||ctx.iocs.get(T.APP,cand);
+      if(ind)ctx.res.hit(mkHit(ind,{...A(src),evidence:EV.ON_DEVICE,location:'running process '+cand,detail:'a process or app the researchers name was running',context:cand}));
+    }
+  };
+  if(procs){try{
+    const recs=JSON.parse(dec8.decode(await procs.read()));
+    if(!Array.isArray(recs))throw new Error('unsupported process JSON; expected an array');
+    let invalid=0,unavail=0;
+    for(const r of recs.slice(0,200000)){
+      if(!r||typeof r!=='object'||!Number.isInteger(r.pid)||r.pid<=0||!('command_line' in r)){invalid++;continue}
+      const c=r.command_line;if(c===null||(Array.isArray(c)&&!c.length)){unavail++;continue}
+      if(!Array.isArray(c)||typeof c[0]!=='string'||!c[0]){invalid++;continue}
+      procName(c[0],'processes.json');
+    }
+    if(invalid)ctx.res.gap('android:processes',invalid+' invalid process record(s) were not searched');
+    if(unavail)ctx.res.gap('android:processes',unavail+' process command line(s) unavailable; kernel tasks or unreadable records cannot be classified');
+  }catch(e){ctx.res.gap('android:processes','processes.json: '+e.message)}}
+  else{for(const n of ['processes.txt','ps.txt']){const f=get(n);if(!f)continue;const lines=dec8.decode(await f.read()).split(/\r?\n/);
+      if(!lines.length||!lines[0].toUpperCase().split(/\s+/).some(x=>['NAME','CMD','COMMAND'].includes(x))){ctx.res.gap('android:processes',n+': missing process-list header');continue}
+      for(const l of lines.slice(1)){const p=l.trim().split(/\s+/);if(p[0])procName(p[p.length-1],n)}}}
+  if(pn)ctx.res.ran('android:processes');else ctx.res.gap('android:processes','no supported process records (processes.json, processes.txt or ps.txt)');
+  /* system properties */
+  const gp=get('getprop.txt');
+  if(gp){let n=0;for(const line of dec8.decode(await gp.read()).split(/\r?\n/)){const m=/^\[(.+?)\]: \[(.*)\]$/.exec(line.trim());if(!m)continue;n++;
+      const ind=ctx.iocs.get(T.PROP,m[1]);if(ind)ctx.res.hit(mkHit(ind,{...A('getprop.txt'),evidence:EV.ON_DEVICE,location:'system property '+m[1],detail:'a system property the researchers name is set',context:m[1]+'='+m[2].slice(0,60)}))}
+    if(n)ctx.res.ran('android:properties');else ctx.res.gap('android:properties','getprop.txt has no readable properties')}
+  else ctx.res.gap('android:properties','getprop.txt is missing');
+  /* files.json */
+  const fj=get('files.json');
+  if(fj){try{
+    const recs=JSON.parse(dec8.decode(await fj.read()));if(!Array.isArray(recs))throw new Error('file list must be an array');
+    let hashed=0,valid=0;
+    for(const f of recs){
+      if(!f||typeof f.path!=='string'||!f.path)continue;valid++;
+      const ip=ctx.iocs.get(T.PATH,f.path);if(ip&&(ip.orig||ip.value)===f.path)ctx.res.hit(mkHit(ip,{...A('files.json'),evidence:EV.ON_DEVICE,location:f.path,detail:'a file at a path the researchers tie to spyware'}));
+      const sha=String(f.sha256||'').toLowerCase();
+      if(/^[0-9a-f]{64}$/.test(sha)){hashed++;const is=ctx.iocs.get(T.SHA256,sha);if(is)ctx.res.hit(mkHit(is,{...A('files.json'),evidence:EV.ON_DEVICE,location:f.path,detail:'this file has the fingerprint of a published sample',context:sha}))}
+      const base=f.path.split('/').pop();for(const ind of ctx.iocs.of(T.FNAME)){if((ind.orig||ind.value)===base)ctx.res.lead({check:'android:files',location:f.path,text:'a file name researchers list ('+base+'); a name alone is weak',why:'Ordinary software can use the same file name.'})}
+    }
+    if(valid){ctx.res.ran('android:files');if(!hashed)ctx.res.gap('android:file-hashes','the collection has no file fingerprints (AndroidQF\'s "hash files" option was off), so files were checked by path and name only');else if(hashed<valid)ctx.res.gap('android:file-hashes',(valid-hashed)+' of '+valid+' listed file(s) have no valid fingerprint')}
+    else ctx.res.gap('android:files','AndroidQF could not list files on this phone');
+  }catch(e){ctx.res.gap('android:files','files.json: '+e.message)}}
+  else ctx.res.gap('android:files','files.json is missing');
+  /* logs, settings and other text */
+  for(const [rel,f] of files){
+    if(!rel.startsWith(root))continue;const sub=rel.slice(root.length);
+    if(['packages.json','processes.json','getprop.txt','files.json'].includes(sub))continue;
+    if(sub==='backup.ab'){
+      try{
+        ctx.progress('Reading the SMS backup…');
+        const raw=await f.read();const tarBytes=await C.androidBackup(raw,ctx.password);
+        let n=0;for(const m of C.tar(tarBytes)){n++;scanText(ctx,dec8.decode(m.data),{artifact:'backup.ab',evidence:EV.RECEIVED,location:m.name,detail:'a link or address in the SMS backup (direction not verified, so it counts as received only if it was)'}) }
+        ctx.res.ran('android:messages');ctx.res.note('SMS backup read: '+n+' file(s) inside.');
+      }catch(e){ctx.res.gap('android:messages','backup.ab: '+e.message);if(/password/i.test(e.message))ctx.needsPassword=true}
+      continue;
+    }
+    if(/\.(txt|json|log|xml)$/i.test(sub)){
+      const b=await f.read();
+      const isLog=/^(dumpsys|logcat)/i.test(sub);
+      await scanTextFile(ctx,{path:rel,name:sub.split('/').pop()},b,isLog?EV.DEVICE_LOG:EV.REFERENCED,isLog?'named in the phone\'s own logs':undefined);
+      if(isLog)ctx.res.ran('android:logs');
+    }
+  }
+  return {};
+}
+
+/* ---------- orchestration ---------- */
+function groupInputs(entries){
+  /* find iOS backups and Android collections; everything else is generic */
+  const byPath=new Map(entries.map(e=>[e.path,e]));
+  const roots={ios:[],android:[]};
+  for(const e of entries){
+    const dir=e.path.includes('/')?e.path.slice(0,e.path.lastIndexOf('/')+1):'';
+    if(e.name==='Manifest.db'&&byPath.has(dir+'Manifest.plist')||e.name==='Manifest.db'&&entries.some(x=>x.path.startsWith(dir)&&/^[0-9a-f]{2}\/[0-9a-f]{40}$/.test(x.path.slice(dir.length))))roots.ios.push(dir);
+    if(e.name==='packages.json'&&(byPath.has(dir+'getprop.txt')||byPath.has(dir+'processes.json')||byPath.has(dir+'files.json')))roots.android.push(dir);
+  }
+  return roots;
+}
+async function runScan(ctx,entries){
+  const res=ctx.res;
+  res.files=entries.length;res.bytes=entries.reduce((a,e)=>a+e.size,0);
+  const roots=groupInputs(entries);
+  const claimed=new Set();
+  const map=new Map(entries.map(e=>[e.path,e]));
+  for(const root of roots.ios){
+    const sub=new Map();for(const e of entries)if(e.path.startsWith(root)){sub.set(e.path,e);claimed.add(e.path)}
+    res.inputs.push({kind:'iphone-backup',label:root||'(selected folder)'});
+    ctx.progress('Reading the iPhone backup…');
+    await iosBackup(ctx,root,sub);
+  }
+  for(const root of roots.android){
+    const sub=new Map();for(const e of entries)if(e.path.startsWith(root)){sub.set(e.path,e);claimed.add(e.path)}
+    res.inputs.push({kind:'android-collection',label:root||'(selected folder)'});
+    ctx.progress('Reading the Android collection…');
+    await androidCollection(ctx,root,sub);
+  }
+  const rest=entries.filter(e=>!claimed.has(e.path)&&!/-(wal|shm|journal)$/.test(e.name));
+  if(rest.length)res.inputs.push({kind:'files',label:rest.length+' file(s)'});
+  ctx.sidecar=async(entry,suffix)=>{const s=map.get(entry.path+suffix);if(!s)return null;try{return await s.read()}catch(e){return null}};
+  let done=0;
+  for(const e of rest){
+    if(ctx.cancelled())throw new Error('cancelled');
+    ctx.progress('Checking '+e.name+' ('+(++done)+' of '+rest.length+')');
+    if(e.size>ctx.maxFileBytes){res.gap('files',e.path+': larger than '+Math.round(ctx.maxFileBytes/1048576)+' MiB, not read');continue}
+    try{
+      const bytes=await e.read();
+      const label=guessLabel(e.path);
+      await scanGeneric(ctx,e,bytes,{label});
+    }catch(err){if(err.message==='cancelled')throw err;res.gap('files',e.path+': '+err.message)}
+    await tick();
+  }
+  if(!res.ranChecks.size&&!res.hits.length)res.nothing=true;
+  res.gap('patterns','Optional file-pattern (YARA) rules are not available in the browser version');
+  return res;
+}
+function guessLabel(path){
+  const m=/(^|\/)(Default|Profile \d+|Guest Profile|System Profile)\//i.exec(path);if(m)return m[2];
+  const f=/\/Profiles\/([^/]+)\//i.exec(path);if(f)return f[1];
+  return '';
+}
+
+/* ---------- verdict and reports ---------- */
+function verdict(res){
+  const hits=res.hits;
+  const serious=hits.filter(h=>isSerious(h.evidence)&&h.tier!=='stalkerware'&&h.tier!=='vuln-driver');
+  const stalk=hits.filter(h=>h.tier==='stalkerware');
+  const vuln=hits.filter(h=>h.tier==='vuln-driver');
+  const refs=hits.filter(h=>!isSerious(h.evidence)&&h.tier!=='stalkerware');
+  const incomplete=[...res.gaps.values()].some(g=>!/^(patterns|ios:other)$/.test(g.check));
+  if(res.nothing)return {code:'nothing',title:'Nothing was checked',text:'None of the files you chose could be read by any check. This is not a clean result.',tone:'warn'};
+  if(serious.length)return {code:'matches',title:'Something matched: look closer',text:'This means look closer, not you are infected. Do not delete anything and do not visit any address listed here. Keep the report and get expert help (see below).',tone:'alert'};
+  if(vuln.length||stalk.length)return {code:'leads',title:'Worth a look',text:stalk.length?'A phone-monitoring (stalkerware) list matched. Some of these are family-safety apps people install knowingly. Ask whether you know about it.':'A legitimate signed driver that this actor is known to abuse was found. That alone is a lead, not proof.',tone:'warn'};
+  if(refs.length)return {code:'references',title:'Only references found',text:'Some listed addresses appear in saved content. That is usually an article, report or blocklist about the indicators, not contact with them. Read each one below.',tone:'note'};
+  if(incomplete)return {code:'clean-incomplete',title:'No known indicators found, with gaps',text:'Nothing from the loaded lists turned up in what could be checked, but some checks could not run. See what was not checked. This is not proof that the device is clean.',tone:'ok'};
+  return {code:'clean',title:'No known indicators found',text:'Nothing from the loaded lists turned up in the places this page could check. It is not proof the device is clean: only published, known indicators are looked for, and the list of limits below still applies.',tone:'ok'};
+}
+function defang(h){return (h.type==='domain'||h.type==='ip')?h.indicator.replace(/\./g,'[.]'):h.indicator}
+function toReport(ctx,v){
+  const res=ctx.res;
+  return {tool:'zero-breach-toolkit-web',version:ctx.version,note:'Browser port; see NOTICE. A clean result is never proof of safety.',
+    scannedAt:new Date().toISOString(),
+    indicators:{total:ctx.iocs.count,computer:ctx.iocs.computerCount,asof:ctx.iocs.asof,sets:ctx.setSummaries||[]},
+    inputs:res.inputs,files:res.files,bytes:res.bytes,recordsChecked:res.checked,
+    verdict:{code:v.code,title:v.title},
+    hits:res.hits.map(h=>({indicator:defang(h),type:h.type,evidence:h.evidence,tier:h.tier,confidence:h.confidence,family:h.family,source:h.source,artifact:h.artifact,location:h.location,observed:h.observed,detail:h.detail,profile:h.profile,context:h.context})),
+    worthALook:res.leads,
+    checksRun:[...res.ranChecks].sort(),
+    notChecked:[...res.gaps.values()],
+    notes:res.notes};
+}
+function toSummary(ctx,v){
+  const res=ctx.res;const byEv={};for(const h of res.hits)byEv[h.evidence]=(byEv[h.evidence]||0)+1;
+  return {tool:'zero-breach-toolkit-web',version:ctx.version,verdict:v.code,matchesByEvidence:byEv,checksRun:res.ranChecks.size,notCheckedCount:res.gaps.size,
+    inputs:res.inputs.map(i=>i.kind),note:'Minimal summary: no indicator values, paths, profile names or timestamps. It does not replace the full report.'};
+}
+function toText(ctx,v){
+  const r=toReport(ctx,v);const L=[];
+  L.push('ZERO BREACH TOOLKIT (browser version) - report');L.push('Scanned: '+r.scannedAt);L.push('');
+  L.push('RESULT: '+v.title);L.push(v.text);L.push('');
+  L.push('Indicators loaded: '+r.indicators.total+' ('+r.indicators.computer+' for computer checks)'+(r.indicators.asof?', newest list dated '+r.indicators.asof:''));
+  L.push('Inputs: '+(r.inputs.map(i=>i.kind).join(', ')||'none')+'; files: '+r.files+'; records checked: '+r.recordsChecked);L.push('');
+  if(r.hits.length){L.push('MATCHES (strongest first)');
+    for(const h of [...r.hits].sort((a,b)=>rank(a.evidence)-rank(b.evidence))){
+      L.push('- ['+h.evidence+'] '+h.indicator+' ('+h.type+(h.family?', '+h.family:'')+')');
+      L.push('    where: '+h.artifact+(h.location?' / '+h.location:''));if(h.observed)L.push('    when: '+h.observed);
+      L.push('    meaning: '+EV_TEXT[h.evidence]);L.push('    source: '+h.source+(h.confidence?' ('+h.confidence+')':''));}
+    L.push('')}
+  if(r.worthALook.length){L.push('WORTH A LOOK');for(const l of r.worthALook)L.push('- '+l.location+': '+l.text);L.push('')}
+  L.push('NOT CHECKED (gaps are never a clean result)');
+  if(!r.notChecked.length)L.push('- nothing recorded');for(const g of r.notChecked)L.push('- '+g.check+': '+g.reason+(g.count>1?' (x'+g.count+')':''));
+  L.push('');L.push('CHECKS THAT RAN: '+(r.checksRun.join(', ')||'none'));
+  for(const n of r.notes)L.push('NOTE: '+n);
+  L.push('');L.push('This report can contain private details. Share it only with someone you trust.');
+  return L.join('\n');
+}
+G.ZBX={EV,EV_TEXT,ORDER,isSerious,rank,Result,runScan,verdict,toReport,toSummary,toText,NeedPassword,scanGeneric,defang,hostIndicator,urlHits,mkHit,tick};
+})(typeof globalThis!=='undefined'?globalThis:window);
+
+</script>
+<script>
+window.__SOURCES__=[{"id": "amnesty-pegasus-2021", "name": "NSO Group Pegasus", "url": "https://raw.githubusercontent.com/AmnestyTech/investigations/master/2021-07-18_nso/pegasus.stix2", "format": "stix2", "cite": "Amnesty International (2021)", "category": "mercenary", "family": ""}, {"id": "mvt-predator", "name": "Intellexa Predator", "url": "https://raw.githubusercontent.com/mvt-project/mvt-indicators/main/intellexa_predator/predator.stix2", "format": "stix2", "cite": "Meta, Amnesty International, Citizen Lab, Cisco, Inside Story, iVerify", "category": "mercenary", "family": ""}, {"id": "mvt-rcs-lab", "name": "RCS Lab", "url": "https://raw.githubusercontent.com/mvt-project/mvt-indicators/main/2022-06-23_rcs_lab/rcs.stix2", "format": "stix2", "cite": "Google, Lookout", "category": "mercenary", "family": ""}, {"id": "echap-stalkerware", "name": "Stalkerware (154 apps)", "url": "https://raw.githubusercontent.com/AssoEchap/stalkerware-indicators/master/generated/stalkerware.stix2", "format": "stix2", "cite": "ECHAP", "category": "stalkerware", "family": ""}, {"id": "amnesty-android-campaign-2023", "name": "Mercenary spyware campaign (Android)", "url": "https://raw.githubusercontent.com/AmnestyTech/investigations/master/2023-03-29_android_campaign/malware.stix2", "format": "stix2", "cite": "Amnesty International, Google", "category": "mercenary", "family": ""}, {"id": "mvt-quadream-kingspawn", "name": "QuaDream KingSpawn", "url": "https://raw.githubusercontent.com/mvt-project/mvt-indicators/main/2023-04-11_quadream/kingspawn.stix2", "format": "stix2", "cite": "Citizen Lab, Microsoft", "category": "mercenary", "family": ""}, {"id": "mvt-operation-triangulation", "name": "Operation Triangulation", "url": "https://raw.githubusercontent.com/mvt-project/mvt-indicators/main/2023-06_01_operation_triangulation/operation_triangulation.stix2", "format": "stix2", "cite": "Kaspersky Lab", "category": "mercenary", "family": ""}, {"id": "mvt-wyrmspy-dragonegg", "name": "WyrmSpy and DragonEgg", "url": "https://raw.githubusercontent.com/mvt-project/mvt-indicators/main/2023-07-25_wyrmspy_dragonegg/wyrmspy_dragonegg.stix2", "format": "stix2", "cite": "Lookout", "category": "mercenary", "family": ""}, {"id": "amnesty-wintego-helios-2024", "name": "Wintego Helios", "url": "https://raw.githubusercontent.com/AmnestyTech/investigations/master/2024-05-02_wintego_helios/wintego_helios.stix2", "format": "stix2", "cite": "Amnesty International", "category": "mercenary", "family": ""}, {"id": "amnesty-novispy-2024", "name": "NoviSpy (Serbia)", "url": "https://raw.githubusercontent.com/AmnestyTech/investigations/master/2024-12-16_serbia_novispy/novispy.stix2", "format": "stix2", "cite": "Amnesty International", "category": "mercenary", "family": ""}, {"id": "mvt-eaglemsgspy", "name": "EagleMsgSpy", "url": "https://raw.githubusercontent.com/mvt-project/mvt-indicators/main/2024-12-25_eaglemsgspy/eaglemsgspy.stix2", "format": "stix2", "cite": "Lookout", "category": "mercenary", "family": ""}, {"id": "mvt-candiru", "name": "Candiru (DevilsTongue)", "url": "https://raw.githubusercontent.com/mvt-project/mvt-indicators/main/candiru/candiru.stix2", "format": "stix2", "cite": "Microsoft, Recorded Future", "category": "mercenary", "family": ""}, {"id": "mvt-residentbat", "name": "ResidentBat", "url": "https://raw.githubusercontent.com/mvt-project/mvt-indicators/main/ResidentBat/residentbat.stix2", "format": "stix2", "cite": "Reporters Without Borders, RESIDENT.NGO", "category": "mercenary", "family": ""}, {"id": "mvt-cellebrite", "name": "Cellebrite", "url": "https://raw.githubusercontent.com/mvt-project/mvt-indicators/main/cellebrite/cellebrite.stix2", "format": "stix2", "cite": "Citizen Lab", "category": "mercenary", "family": ""}, {"id": "mvt-darksword", "name": "DarkSword", "url": "https://raw.githubusercontent.com/mvt-project/mvt-indicators/main/2026-03-30_darksword/darksword.stix2", "format": "stix2", "cite": "Google Threat Intelligence Group, iVerify, Lookout", "category": "mercenary", "family": ""}, {"id": "mvt-coruna", "name": "Coruna", "url": "https://raw.githubusercontent.com/mvt-project/mvt-indicators/main/2026-03-03_coruna_cryptowaters/coruna.stix2", "format": "stix2", "cite": "Google Threat Intelligence Group, iVerify", "category": "mercenary", "family": ""}, {"id": "mvt-morpheus", "name": "Morpheus", "url": "https://raw.githubusercontent.com/mvt-project/mvt-indicators/main/2026-04-23_ips_morpheus/morpheus.stix2", "format": "stix2", "cite": "Osservatorio Nessuno", "category": "mercenary", "family": ""}, {"id": "mvt-btmob", "name": "BTMOB", "url": "https://raw.githubusercontent.com/mvt-project/mvt-indicators/main/2026-05-26_btmob/btmob.stix2", "format": "stix2", "cite": "ESET, Cyble Research, Zimperium", "category": "mercenary", "family": ""}, {"id": "mvt-spyrtacus", "name": "Spyrtacus", "url": "https://raw.githubusercontent.com/mvt-project/mvt-indicators/main/2026-04-09_sio_spyrtacus/spyrtacus.stix2", "format": "stix2", "cite": "Osservatorio Nessuno", "category": "mercenary", "family": ""}, {"id": "amnesty-nso-2018", "name": "NSO Group (2018)", "url": "https://raw.githubusercontent.com/AmnestyTech/investigations/master/2018-08-01_nso/indicators.csv", "format": "csv-domain-ip", "cite": "Amnesty International (2018-08-01), NSO Group infrastructure", "category": "mercenary", "family": "Pegasus"}, {"id": "amnesty-nso-morocco-2019", "name": "NSO Group (Morocco, 2019)", "url": "https://raw.githubusercontent.com/AmnestyTech/investigations/master/2019-10-10_nso_morocco/domains.txt", "format": "domains-txt", "cite": "Amnesty International (2019-10-10), Morocco", "category": "mercenary", "family": "Pegasus"}, {"id": "amnesty-cytrox-2021", "name": "Cytrox (Predator, 2021)", "url": "https://raw.githubusercontent.com/AmnestyTech/investigations/master/2021-12-16_cytrox/cytrox.stix2", "format": "stix2", "cite": "Meta, Citizen Lab, Amnesty International (2021-12-16)", "category": "mercenary", "family": "Predator"}, {"id": "amnesty-finfisher-2020", "name": "FinFisher / FinSpy (Gamma Group)", "url": "https://raw.githubusercontent.com/AmnestyTech/investigations/master/2020-09-25_finfisher/domains.txt", "format": "domains-txt", "cite": "Amnesty International (2020-09-25), FinSpy for Windows, Android and Linux", "category": "mercenary", "family": "FinSpy"}, {"id": "citizenlab-nso-2016", "name": "NSO Group (Trident / Ahmed Mansoor, 2016)", "url": "https://raw.githubusercontent.com/citizenlab/malware-indicators/master/201608_NSO_Group/iocs.csv", "format": "misp-csv", "cite": "The Citizen Lab, 'The Million Dollar Dissident' (2016-08)", "category": "mercenary", "family": "Pegasus"}, {"id": "citizenlab-cyberbit-2017", "name": "Cyberbit (Ethiopia, 2017)", "url": "https://raw.githubusercontent.com/citizenlab/malware-indicators/master/201712_Cyberbit/iocs.csv", "format": "misp-csv", "cite": "The Citizen Lab, 'Champing at the Cyberbit' (2017-12)", "category": "mercenary", "family": "Cyberbit PC Surveillance System"}, {"id": "citizenlab-kingdom-2018", "name": "NSO Group (The Kingdom Came to Canada, 2018)", "url": "https://raw.githubusercontent.com/citizenlab/malware-indicators/master/201810_TheKingdomCameToCanada/iocs.csv", "format": "misp-csv", "cite": "The Citizen Lab, 'The Kingdom Came to Canada' (2018-10)", "category": "mercenary", "family": "Pegasus"}, {"id": "citizenlab-nso-mexico-exploit-2017", "name": "NSO Group (Reckless Exploit, Mexico, 2017)", "url": "https://raw.githubusercontent.com/citizenlab/malware-indicators/master/201706_RecklessExploit/iocs.csv", "format": "misp-csv", "cite": "The Citizen Lab, 'Reckless Exploit' (2017-06), Mexico", "category": "mercenary", "family": "Pegasus"}, {"id": "citizenlab-nso-mexico-redux-2017", "name": "NSO Group (Reckless Redux, Mexico, 2017)", "url": "https://raw.githubusercontent.com/citizenlab/malware-indicators/master/201706_RecklessRedux/iocs.csv", "format": "misp-csv", "cite": "The Citizen Lab, 'Reckless Redux' (2017-06), Mexico", "category": "mercenary", "family": "Pegasus"}, {"id": "citizenlab-nso-insider-2017", "name": "NSO Group (Insider Information, Mexico, 2017)", "url": "https://raw.githubusercontent.com/citizenlab/malware-indicators/master/201707_InsiderInfo/indicators.csv", "format": "misp-csv", "cite": "The Citizen Lab, 'Insider Information' (2017-07), Mexico", "category": "mercenary", "family": "Pegasus"}];
+window.__BUNDLED__=[{"name": "Adfection indicators (CC0)", "text": "# AdFection / Discover-Tech / Candiru - indicators of compromise\n#\n# as-of: 2026-10-18\n# ^ The date this indicator set was last curated. It is the tool's staleness\n#   reference AND it makes the single-file build reproducible: the build embeds\n#   THIS date, not the file's modification time, so anyone can rebuild the\n#   standalone from a fresh checkout and get a byte-identical file. Update this\n#   line (and only deliberately) whenever the indicators below change.\n#\n# Source: The Citizen Lab, \"Exposing AdFection: How Discover-Tech Turned Targeted Ads\n# Into a Pipeline for Zero-Click Mercenary Spyware\", published 2026-10-15.\n# https://citizenlab.ca/research/how-discover-tech-turned-targeted-ads-into-a-pipeline-for-spyware/\n# Companion: Confiant, \"ADINT: Weaponized Ad Tech for Zero-Click Spyware and Mass\n# Identity Vacuuming\" (same date).\n#\n# Extended 2026-10-18 from the report's own Appendix C (\"Domains linked to Discover-Tech\n# and Controlium\") and its body text. Every line below was read out of the report itself\n# and cross-checked by two independent reads of the page before being added.\n#\n# Format: indicator <TAB> tier <TAB> confidence <TAB> source-tag\n#   tier       = cc | validator | delivery | historical | sample | vuln-driver\n#                | candiru | candiru-ip\n#                (`sample` = the spyware itself; `vuln-driver` = legitimate signed\n#                 software this actor abuses - a match is a lead, never proof)\n#   confidence = primary   (read from the cited current-campaign primary report)\n#                secondary (from a third-party summary of that report, OR from a\n#                           primary report of a separate/older campaign - verify\n#                           currency before acting; the source column says which)\n#\n# The indicator TYPE is inferred from its shape: 64 hex chars -> SHA-256,\n# dotted quad -> IP, otherwise -> domain. Scope is Candiru / DevilsTongue and\n# its AdFection delivery infrastructure; other spyware vendors are not imported.\n# Scanner evidence is distinct from live blocklist membership: the denylist\n# emitter excludes bare adtimizer.co while keeping named operational subhosts.\n#\n# Appendix C lists its entries as wildcards (`*.controlium[.]net`). Matching here is\n# case-insensitive boundary matching, so a registrable domain matches its subdomains\n# automatically. Named subdomains are kept anyway, because knowing WHICH endpoint was\n# contacted is worth more than a bare domain hit when someone has to triage it.\n#\n# IMPORTANT, from the report itself: an ad impression from this infrastructure in your\n# logs is NOT proof of infection. Not every ad carried a payload, and the validator\n# server decided per-device whether to continue. A hit here means \"investigate\", never\n# \"you are compromised\".\n#\n# ---------------------------------------------------------------------------------\n# DELIBERATELY NOT IMPORTED\n#\n# 1. The validator server set. The report states verbatim: \"In all, we found 305\n#    distinct domain names on 319 IP addresses\" - but it does NOT publish that list.\n#    Only the two below are named. So this file carries 2 of 305 validator domains and\n#    none of the 319 IPs, and that gap CANNOT be closed from the public report. It is\n#    the single largest known hole in this data set. Anyone with access to the full set\n#    (Citizen Lab, Sekoia and Recorded Future are named as having attributed some of\n#    them) could close it.\n# 2. Discover-Tech's own corporate websites (intelos.io, tekma.io, tekma-dmp.ai, and\n#    the shared Wix account linking them). These appear in the report as ATTRIBUTION\n#    evidence - they are how the companies were tied together - not as attack\n#    infrastructure. Matching them would flag anyone who merely read about the company,\n#    which is a false positive, not a finding.\n# 3. 10.0.0.52 (an internal address seen in login records, explicitly not infrastructure)\n#    and 62.90.129.xxx (redacted in the source, so unusable).\n# ---------------------------------------------------------------------------------\n#\n# Candiru command-and-control. These four matched the report's C&C \"Fingerprint C1\".\nfearevolve.com\tcc\tprimary\tcitizenlab-adfection-2026\njobmarcher.com\tcc\tprimary\tcitizenlab-adfection-2026\ninsightenterprisells.com\tcc\tprimary\tcitizenlab-adfection-2026\nplasticbells.com\tcc\tprimary\tcitizenlab-adfection-2026\n#\n# Two further Fingerprint C1 domains, registered within two hours of each other on\n# 2025-03-18.\noutdooutcome.com\tcc\tprimary\tcitizenlab-adfection-2026\nsuggestutterly.com\tcc\tprimary\tcitizenlab-adfection-2026\n#\n# An IP that matched the same fingerprint, plus the two shared-hosting hostnames the\n# report says pointed at it. The hostnames are specific enough to match safely; the\n# IP is an Azure address, so note that cloud IPs get reassigned to innocent tenants\n# over time - treat an IP-only hit as weaker than a domain hit.\n52.174.65.77\tcc\tprimary\tcitizenlab-adfection-2026\narcher.westeurope.cloudapp.azure.com\tcc\tprimary\tcitizenlab-adfection-2026\nbd-mainserver.herokuapp.com\tcc\tprimary\tcitizenlab-adfection-2026\n#\n# Candiru validator servers (device profiling / target selection).\n# Only these two are named in the report. See \"DELIBERATELY NOT IMPORTED\" above: the\n# other 303 domains and all 319 IPs are counted in the report but never listed.\nkeyadapter.com\tvalidator\tprimary\tcitizenlab-adfection-2026\nsharethere.net\tvalidator\tprimary\tcitizenlab-adfection-2026\n#\n# Discover-Tech / Controlium infrastructure - Appendix C, \"General\".\ndiscover-tech.io\tdelivery\tprimary\tcitizenlab-adfection-2026\nmtrtb.com\tdelivery\tprimary\tcitizenlab-adfection-2026\nmydsp.io\tdelivery\tprimary\tcitizenlab-adfection-2026\ncontrolium.net\tdelivery\tprimary\tcitizenlab-adfection-2026\npowerium.net\tdelivery\tprimary\tcitizenlab-adfection-2026\nplatc-tester.com\tdelivery\tprimary\tcitizenlab-adfection-2026\nmyweb3id.io\tdelivery\tprimary\tcitizenlab-adfection-2026\nmyipinfo.io\tdelivery\tprimary\tcitizenlab-adfection-2026\nakedo.gg\tdelivery\tprimary\tcitizenlab-adfection-2026\nvolasim.com\tdelivery\tprimary\tcitizenlab-adfection-2026\n#\n# Appendix C, \"NOAS Servers\" - the ad-serving endpoints (the report lists these with a\n# /getAd or /cplatform/getAd path; the host is what is matchable in local artifacts).\nnoas.mtrtb.com\tdelivery\tprimary\tcitizenlab-adfection-2026\ninfinoas.mtrtb.com\tdelivery\tprimary\tcitizenlab-adfection-2026\nppv2.mtrtb.com\tdelivery\tprimary\tcitizenlab-adfection-2026\npqv2.mtrtb.com\tdelivery\tprimary\tcitizenlab-adfection-2026\nevents.platc-tester.com\tdelivery\tprimary\tcitizenlab-adfection-2026\nevents.myweb3id.io\tdelivery\tprimary\tcitizenlab-adfection-2026\nnoas.powerium.net\tdelivery\tprimary\tcitizenlab-adfection-2026\nqa-noas.powerium.net\tdelivery\tprimary\tcitizenlab-adfection-2026\nnoas.adtimizer.co\tdelivery\tprimary\tcitizenlab-adfection-2026\nnoas.impchkdsp.com\tdelivery\tprimary\tcitizenlab-adfection-2026\nnoas.trakking.co\tdelivery\tprimary\tcitizenlab-adfection-2026\n#\n# Appendix C, \"Ad Tracking Domains\".\ntracookiepixel.xyz\tdelivery\tprimary\tcitizenlab-adfection-2026\ncookiesurfer.com\tdelivery\tprimary\tcitizenlab-adfection-2026\ncookie-sync.xyz\tdelivery\tprimary\tcitizenlab-adfection-2026\nads-monitor.xyz\tdelivery\tprimary\tcitizenlab-adfection-2026\ncheckmyimp.com\tdelivery\tprimary\tcitizenlab-adfection-2026\nads-impressions.com\tdelivery\tprimary\tcitizenlab-adfection-2026\nnutralove.co\tdelivery\tprimary\tcitizenlab-adfection-2026\n#\n# Further delivery infrastructure named in the report body.\nadtimizer.co\tdelivery\tprimary\tcitizenlab-adfection-2026\ndtech.adtimizer.co\tdelivery\tprimary\tcitizenlab-adfection-2026\ntracker.mtrtb.com\tdelivery\tprimary\tcitizenlab-adfection-2026\nsincereaccertain.com\tdelivery\tprimary\tcitizenlab-adfection-2026\nd1fcoizt7mje85.cloudfront.net\tdelivery\tprimary\tcitizenlab-adfection-2026\ndiscovertech-alb-100966113.us-east-1.elb.amazonaws.com\tdelivery\tprimary\tcitizenlab-adfection-2026\n#\n# Candiru infrastructure from the 2021 \"Hooking Candiru\" report - a SEPARATE, older\n# campaign. Included because a hit would still be significant, not because it is part\n# of AdFection.\nmsstore.io\thistorical\tprimary\tcitizenlab-adfection-2026\nadtracker.link\thistorical\tprimary\tcitizenlab-adfection-2026\ncdnmobile.io\thistorical\tprimary\tcitizenlab-adfection-2026\n185.181.8.155\thistorical\tprimary\tcitizenlab-adfection-2026\n#\n# Known sample - the one Candiru Windows DLL published for this campaign.\n# SHA-256 of the DLL delivered through Discover-Tech ads (Citizen Lab, 2026-10-15).\n# This is ONE build. Another victim's DLL is compiled differently and will not match,\n# so a clean hash result is close to meaningless on its own - it is here because a\n# match would be conclusive, not because a miss is reassuring.\n255869de85e2a171993fc5eb8a556d873a1b8966e040f6f55926f2fa2d595cc8\tsample\tprimary\tcitizenlab-adfection-2026\n#\n# ---------------------------------------------------------------------------------\n# SECOND SOURCE: Recorded Future, Insikt Group, \"Tracking Candiru's DevilsTongue\n# Spyware in Multiple Countries\" (CTA-2025-0805), published 2025-08-05.\n# https://www.recordedfuture.com/research/tracking-candirus-devilstongue-spyware\n# Imported 2026-10-18 from that report's Appendix A, transcribed by script rather\n# than by hand so a typo cannot invent a domain.\n#\n# WHY THIS IS HERE: the Citizen Lab report says its 305-domain validator set\n# \"includes ones publicly attributed to Candiru by Sekoia, as well as Recorded\n# Future\". This is that Recorded Future set. It does NOT recover the 305 (see\n# VALIDATOR-GAP.md), but it is the largest body of independently-attributed\n# Candiru infrastructure that is actually published.\n#\n# CROSS-VALIDATION, and the reason to trust this import: four domains in this\n# appendix - fearevolve.com, jobmarcher.com, outdooutcome.com, suggestutterly.com -\n# were ALREADY in this file from the Citizen Lab report, where they are named as\n# command-and-control servers. And the DevilsTongue SHA-256 in this appendix is\n# byte-identical to the AdFection sample hash below. Two vendors, 14 months apart,\n# describing the same infrastructure and the same binary.\n#\n# TIER CHOICE: Recorded Future describes eight clusters mixing victim-facing C2\n# with higher-tier operator infrastructure, and does not say which domain is\n# which. Filing them as `cc` would claim precision the source does not give, so\n# they are `candiru` = \"Candiru-attributed, role unspecified\". A hit is serious.\n#\n# THE IPs ARE WEAKER THAN THE DOMAINS, deliberately tiered apart as `candiru-ip`.\n# Nearly all are Vultr / DigitalOcean addresses from a report dated 2025-08. Cloud\n# IPs get reassigned to unrelated, innocent tenants within months. An undated hit\n# on one of these is far more likely to be a coincidence than a finding; it is\n# only meaningful if the hit carries a DATE inside the period (a DNS log entry,\n# say). Do not treat an IP hit as evidence on its own.\n# ---------------------------------------------------------------------------------\nambiguouscommerce.com\tcandiru\tprimary\trecordedfuture-2025-08\nantperspective.com\tcandiru\tprimary\trecordedfuture-2025-08\naperturebelt.com\tcandiru\tprimary\trecordedfuture-2025-08\nasknapkin.com\tcandiru\tprimary\trecordedfuture-2025-08\nbarnsecret.com\tcandiru\tprimary\trecordedfuture-2025-08\nbaseagriculture.com\tcandiru\tprimary\trecordedfuture-2025-08\nbasicstraw.com\tcandiru\tprimary\trecordedfuture-2025-08\nbasinapposite.com\tcandiru\tprimary\trecordedfuture-2025-08\nbeneathbreadth.com\tcandiru\tprimary\trecordedfuture-2025-08\nbizarreclassify.com\tcandiru\tprimary\trecordedfuture-2025-08\nblockroster.net\tcandiru\tprimary\trecordedfuture-2025-08\nbondmuscle.com\tcandiru\tprimary\trecordedfuture-2025-08\nbreadgroomer.com\tcandiru\tprimary\trecordedfuture-2025-08\nbronzemonth.com\tcandiru\tprimary\trecordedfuture-2025-08\nbrowniebell.com\tcandiru\tprimary\trecordedfuture-2025-08\nbypassbirch.com\tcandiru\tprimary\trecordedfuture-2025-08\nbypasscalculate.com\tcandiru\tprimary\trecordedfuture-2025-08\nbypasscommerce.com\tcandiru\tprimary\trecordedfuture-2025-08\ncalmbase.org\tcandiru\tprimary\trecordedfuture-2025-08\ncartoondrop.net\tcandiru\tprimary\trecordedfuture-2025-08\nchickenstrawberry.com\tcandiru\tprimary\trecordedfuture-2025-08\ncitecivilization.com\tcandiru\tprimary\trecordedfuture-2025-08\nclosetmeat.com\tcandiru\tprimary\trecordedfuture-2025-08\ncommonclever.com\tcandiru\tprimary\trecordedfuture-2025-08\nconcretebottle.com\tcandiru\tprimary\trecordedfuture-2025-08\nconquerconfess.com\tcandiru\tprimary\trecordedfuture-2025-08\ncontainsnow.com\tcandiru\tprimary\trecordedfuture-2025-08\ncontradictionblindness.com\tcandiru\tprimary\trecordedfuture-2025-08\nconvincechaotic.com\tcandiru\tprimary\trecordedfuture-2025-08\ncooperatedisinfect.net\tcandiru\tprimary\trecordedfuture-2025-08\ncottonbread.com\tcandiru\tprimary\trecordedfuture-2025-08\ncranberrybear.com\tcandiru\tprimary\trecordedfuture-2025-08\ncropcritique.com\tcandiru\tprimary\trecordedfuture-2025-08\ncrossoverdue.com\tcandiru\tprimary\trecordedfuture-2025-08\ndamageconsider.com\tcandiru\tprimary\trecordedfuture-2025-08\ndeardrill.com\tcandiru\tprimary\trecordedfuture-2025-08\ndediccatedconsideration.com\tcandiru\tprimary\trecordedfuture-2025-08\ndeducedefend.com\tcandiru\tprimary\trecordedfuture-2025-08\ndeliverconcern.net\tcandiru\tprimary\trecordedfuture-2025-08\ndensefoot.com\tcandiru\tprimary\trecordedfuture-2025-08\ndesireeclipse.com\tcandiru\tprimary\trecordedfuture-2025-08\ndetaincharity.net\tcandiru\tprimary\trecordedfuture-2025-08\ndeterdiffusion.com\tcandiru\tprimary\trecordedfuture-2025-08\ndevotionbelief.com\tcandiru\tprimary\trecordedfuture-2025-08\ndistractionfar.com\tcandiru\tprimary\trecordedfuture-2025-08\ndrivesplash.com\tcandiru\tprimary\trecordedfuture-2025-08\ndrummerjourney.com\tcandiru\tprimary\trecordedfuture-2025-08\ndumplingbell.com\tcandiru\tprimary\trecordedfuture-2025-08\nelectric-prime.com\tcandiru\tprimary\trecordedfuture-2025-08\nelifluousscintillam.com\tcandiru\tprimary\trecordedfuture-2025-08\neminententwine.com\tcandiru\tprimary\trecordedfuture-2025-08\nexhibitexpanse.com\tcandiru\tprimary\trecordedfuture-2025-08\nfallaciousessential.net\tcandiru\tprimary\trecordedfuture-2025-08\nfileswaper.com\tcandiru\tprimary\trecordedfuture-2025-08\nfinalsalami.com\tcandiru\tprimary\trecordedfuture-2025-08\nflexibleelevator.com\tcandiru\tprimary\trecordedfuture-2025-08\nfoamdirection.com\tcandiru\tprimary\trecordedfuture-2025-08\nforecastgarden.com\tcandiru\tprimary\trecordedfuture-2025-08\ngoatsandals.com\tcandiru\tprimary\trecordedfuture-2025-08\ngolfconcert.com\tcandiru\tprimary\trecordedfuture-2025-08\ngroundbreakinginitative.com\tcandiru\tprimary\trecordedfuture-2025-08\nguitarcalculate.com\tcandiru\tprimary\trecordedfuture-2025-08\nhostilefauna.com\tcandiru\tprimary\trecordedfuture-2025-08\nisolatelecture.com\tcandiru\tprimary\trecordedfuture-2025-08\njellybat.net\tcandiru\tprimary\trecordedfuture-2025-08\njourneyjest.net\tcandiru\tprimary\trecordedfuture-2025-08\nkartingrumble.com\tcandiru\tprimary\trecordedfuture-2025-08\nlabyrinthextravagance.org\tcandiru\tprimary\trecordedfuture-2025-08\nleafconfuse.net\tcandiru\tprimary\trecordedfuture-2025-08\nlessonhandle.com\tcandiru\tprimary\trecordedfuture-2025-08\nmacrodrop.net\tcandiru\tprimary\trecordedfuture-2025-08\nmacromint.net\tcandiru\tprimary\trecordedfuture-2025-08\nmaturitygenesis.com\tcandiru\tprimary\trecordedfuture-2025-08\nmeasurecabin.com\tcandiru\tprimary\trecordedfuture-2025-08\nmushroompalm.com\tcandiru\tprimary\trecordedfuture-2025-08\nnotableexam.org\tcandiru\tprimary\trecordedfuture-2025-08\nnotionnowadays.com\tcandiru\tprimary\trecordedfuture-2025-08\nparkourbus.com\tcandiru\tprimary\trecordedfuture-2025-08\npatternperiod.com\tcandiru\tprimary\trecordedfuture-2025-08\npenslice.com\tcandiru\tprimary\trecordedfuture-2025-08\npepperdominate.com\tcandiru\tprimary\trecordedfuture-2025-08\nprawnbasket.com\tcandiru\tprimary\trecordedfuture-2025-08\npredictproper.com\tcandiru\tprimary\trecordedfuture-2025-08\npressaviation.com\tcandiru\tprimary\trecordedfuture-2025-08\nprofligatecensure.com\tcandiru\tprimary\trecordedfuture-2025-08\nrollstrech.com\tcandiru\tprimary\trecordedfuture-2025-08\nromancedrum.com\tcandiru\tprimary\trecordedfuture-2025-08\nsacrificeprincipal.net\tcandiru\tprimary\trecordedfuture-2025-08\nsalmonpride.net\tcandiru\tprimary\trecordedfuture-2025-08\nscoreparade.com\tcandiru\tprimary\trecordedfuture-2025-08\nselectedpazzle.com\tcandiru\tprimary\trecordedfuture-2025-08\nshareitwork.com\tcandiru\tprimary\trecordedfuture-2025-08\nsignifyslight.com\tcandiru\tprimary\trecordedfuture-2025-08\nspongefruit.com\tcandiru\tprimary\trecordedfuture-2025-08\nstablesurface.com\tcandiru\tprimary\trecordedfuture-2025-08\nstrangegarden.org\tcandiru\tprimary\trecordedfuture-2025-08\nstylebrakedown.com\tcandiru\tprimary\trecordedfuture-2025-08\nsunsetpotential.com\tcandiru\tprimary\trecordedfuture-2025-08\ntacticscheap.net\tcandiru\tprimary\trecordedfuture-2025-08\ntidalscreen.com\tcandiru\tprimary\trecordedfuture-2025-08\ntubeshape.com\tcandiru\tprimary\trecordedfuture-2025-08\nultimatematter.info\tcandiru\tprimary\trecordedfuture-2025-08\nvelvetpremier.com\tcandiru\tprimary\trecordedfuture-2025-08\nwindomination.com\tcandiru\tprimary\trecordedfuture-2025-08\n5.181.159.109\tcandiru-ip\tprimary\trecordedfuture-2025-08\n5.252.178.158\tcandiru-ip\tprimary\trecordedfuture-2025-08\n23.29.115.188\tcandiru-ip\tprimary\trecordedfuture-2025-08\n23.227.198.196\tcandiru-ip\tprimary\trecordedfuture-2025-08\n38.132.101.35\tcandiru-ip\tprimary\trecordedfuture-2025-08\n45.32.109.170\tcandiru-ip\tprimary\trecordedfuture-2025-08\n45.32.150.100\tcandiru-ip\tprimary\trecordedfuture-2025-08\n45.76.31.6\tcandiru-ip\tprimary\trecordedfuture-2025-08\n45.76.252.109\tcandiru-ip\tprimary\trecordedfuture-2025-08\n45.77.57.173\tcandiru-ip\tprimary\trecordedfuture-2025-08\n45.77.105.76\tcandiru-ip\tprimary\trecordedfuture-2025-08\n64.225.3.138\tcandiru-ip\tprimary\trecordedfuture-2025-08\n64.226.103.163\tcandiru-ip\tprimary\trecordedfuture-2025-08\n65.20.96.9\tcandiru-ip\tprimary\trecordedfuture-2025-08\n65.20.105.177\tcandiru-ip\tprimary\trecordedfuture-2025-08\n65.20.106.49\tcandiru-ip\tprimary\trecordedfuture-2025-08\n66.42.73.169\tcandiru-ip\tprimary\trecordedfuture-2025-08\n66.42.126.125\tcandiru-ip\tprimary\trecordedfuture-2025-08\n68.183.169.21\tcandiru-ip\tprimary\trecordedfuture-2025-08\n68.183.186.185\tcandiru-ip\tprimary\trecordedfuture-2025-08\n70.34.194.5\tcandiru-ip\tprimary\trecordedfuture-2025-08\n70.34.251.208\tcandiru-ip\tprimary\trecordedfuture-2025-08\n84.247.51.183\tcandiru-ip\tprimary\trecordedfuture-2025-08\n88.119.175.56\tcandiru-ip\tprimary\trecordedfuture-2025-08\n88.119.175.75\tcandiru-ip\tprimary\trecordedfuture-2025-08\n91.207.173.115\tcandiru-ip\tprimary\trecordedfuture-2025-08\n95.179.215.54\tcandiru-ip\tprimary\trecordedfuture-2025-08\n104.207.153.0\tcandiru-ip\tprimary\trecordedfuture-2025-08\n107.170.37.216\tcandiru-ip\tprimary\trecordedfuture-2025-08\n107.170.42.32\tcandiru-ip\tprimary\trecordedfuture-2025-08\n107.170.42.56\tcandiru-ip\tprimary\trecordedfuture-2025-08\n134.209.3.89\tcandiru-ip\tprimary\trecordedfuture-2025-08\n134.209.220.157\tcandiru-ip\tprimary\trecordedfuture-2025-08\n136.244.69.219\tcandiru-ip\tprimary\trecordedfuture-2025-08\n137.184.254.107\tcandiru-ip\tprimary\trecordedfuture-2025-08\n138.197.43.97\tcandiru-ip\tprimary\trecordedfuture-2025-08\n139.59.14.26\tcandiru-ip\tprimary\trecordedfuture-2025-08\n139.84.208.188\tcandiru-ip\tprimary\trecordedfuture-2025-08\n140.82.5.20\tcandiru-ip\tprimary\trecordedfuture-2025-08\n143.198.64.22\tcandiru-ip\tprimary\trecordedfuture-2025-08\n146.70.20.203\tcandiru-ip\tprimary\trecordedfuture-2025-08\n146.70.29.228\tcandiru-ip\tprimary\trecordedfuture-2025-08\n146.70.53.156\tcandiru-ip\tprimary\trecordedfuture-2025-08\n146.70.81.218\tcandiru-ip\tprimary\trecordedfuture-2025-08\n146.70.86.251\tcandiru-ip\tprimary\trecordedfuture-2025-08\n146.70.102.108\tcandiru-ip\tprimary\trecordedfuture-2025-08\n146.70.102.110\tcandiru-ip\tprimary\trecordedfuture-2025-08\n146.70.102.121\tcandiru-ip\tprimary\trecordedfuture-2025-08\n146.70.102.134\tcandiru-ip\tprimary\trecordedfuture-2025-08\n146.70.116.7\tcandiru-ip\tprimary\trecordedfuture-2025-08\n146.70.131.224\tcandiru-ip\tprimary\trecordedfuture-2025-08\n146.70.147.9\tcandiru-ip\tprimary\trecordedfuture-2025-08\n146.70.160.49\tcandiru-ip\tprimary\trecordedfuture-2025-08\n146.70.169.165\tcandiru-ip\tprimary\trecordedfuture-2025-08\n147.182.161.167\tcandiru-ip\tprimary\trecordedfuture-2025-08\n149.28.57.173\tcandiru-ip\tprimary\trecordedfuture-2025-08\n149.28.71.25\tcandiru-ip\tprimary\trecordedfuture-2025-08\n149.28.77.207\tcandiru-ip\tprimary\trecordedfuture-2025-08\n149.28.142.211\tcandiru-ip\tprimary\trecordedfuture-2025-08\n149.28.242.133\tcandiru-ip\tprimary\trecordedfuture-2025-08\n149.28.250.35\tcandiru-ip\tprimary\trecordedfuture-2025-08\n149.28.253.112\tcandiru-ip\tprimary\trecordedfuture-2025-08\n149.248.1.147\tcandiru-ip\tprimary\trecordedfuture-2025-08\n152.42.226.197\tcandiru-ip\tprimary\trecordedfuture-2025-08\n155.138.163.117\tcandiru-ip\tprimary\trecordedfuture-2025-08\n155.138.202.66\tcandiru-ip\tprimary\trecordedfuture-2025-08\n155.138.240.74\tcandiru-ip\tprimary\trecordedfuture-2025-08\n157.230.128.10\tcandiru-ip\tprimary\trecordedfuture-2025-08\n157.245.176.133\tcandiru-ip\tprimary\trecordedfuture-2025-08\n158.247.194.199\tcandiru-ip\tprimary\trecordedfuture-2025-08\n159.89.14.225\tcandiru-ip\tprimary\trecordedfuture-2025-08\n159.223.151.126\tcandiru-ip\tprimary\trecordedfuture-2025-08\n159.223.208.191\tcandiru-ip\tprimary\trecordedfuture-2025-08\n161.35.150.79\tcandiru-ip\tprimary\trecordedfuture-2025-08\n164.92.225.66\tcandiru-ip\tprimary\trecordedfuture-2025-08\n164.92.235.125\tcandiru-ip\tprimary\trecordedfuture-2025-08\n165.22.5.231\tcandiru-ip\tprimary\trecordedfuture-2025-08\n165.22.51.81\tcandiru-ip\tprimary\trecordedfuture-2025-08\n165.22.71.71\tcandiru-ip\tprimary\trecordedfuture-2025-08\n165.227.145.109\tcandiru-ip\tprimary\trecordedfuture-2025-08\n167.99.3.150\tcandiru-ip\tprimary\trecordedfuture-2025-08\n167.99.85.48\tcandiru-ip\tprimary\trecordedfuture-2025-08\n174.138.34.46\tcandiru-ip\tprimary\trecordedfuture-2025-08\n178.128.49.106\tcandiru-ip\tprimary\trecordedfuture-2025-08\n185.234.52.230\tcandiru-ip\tprimary\trecordedfuture-2025-08\n188.208.141.190\tcandiru-ip\tprimary\trecordedfuture-2025-08\n194.37.97.159\tcandiru-ip\tprimary\trecordedfuture-2025-08\n194.180.158.45\tcandiru-ip\tprimary\trecordedfuture-2025-08\n194.180.158.71\tcandiru-ip\tprimary\trecordedfuture-2025-08\n194.180.191.84\tcandiru-ip\tprimary\trecordedfuture-2025-08\n198.211.98.248\tcandiru-ip\tprimary\trecordedfuture-2025-08\n199.247.10.38\tcandiru-ip\tprimary\trecordedfuture-2025-08\n206.81.14.237\tcandiru-ip\tprimary\trecordedfuture-2025-08\n207.246.87.188\tcandiru-ip\tprimary\trecordedfuture-2025-08\n207.246.90.6\tcandiru-ip\tprimary\trecordedfuture-2025-08\n207.246.105.206\tcandiru-ip\tprimary\trecordedfuture-2025-08\n207.246.113.7\tcandiru-ip\tprimary\trecordedfuture-2025-08\n208.76.221.167\tcandiru-ip\tprimary\trecordedfuture-2025-08\n208.76.223.59\tcandiru-ip\tprimary\trecordedfuture-2025-08\n208.85.18.104\tcandiru-ip\tprimary\trecordedfuture-2025-08\n213.252.232.129\tcandiru-ip\tprimary\trecordedfuture-2025-08\n213.252.232.141\tcandiru-ip\tprimary\trecordedfuture-2025-08\n216.128.178.12\tcandiru-ip\tprimary\trecordedfuture-2025-08\n216.238.77.17\tcandiru-ip\tprimary\trecordedfuture-2025-08\n216.238.80.164\tcandiru-ip\tprimary\trecordedfuture-2025-08\n216.238.86.164\tcandiru-ip\tprimary\trecordedfuture-2025-08\n216.238.91.249\tcandiru-ip\tprimary\trecordedfuture-2025-08\n217.69.6.58\tcandiru-ip\tprimary\trecordedfuture-2025-08\n217.69.10.11\tcandiru-ip\tprimary\trecordedfuture-2025-08\n\n# --- Historical Candiru infrastructure (separate, older campaigns) --------\n# Added 2026-10-18 from PRIMARY reports (not news coverage). Attacker-\n# controlled infrastructure only; compromised victim sites, real-org look-\n# alikes, decayed IPs and SHA-1 hashes were deliberately excluded. A hit is\n# tier=historical: significant if dated, but these domains are old and some\n# may since have lapsed and been re-registered, so confidence is secondary.\n#   eset-swc-2021            ESET, 'Strategic web compromises ... Candiru' (2021-11-16)\n#   avast-2022               Avast/Gen, 'The Return of Candiru' (CVE-2022-2294, 2022)\n#   citizenlab-candiru-2021  The Citizen Lab, 'Hooking Candiru' (2021-07)\npiwiks.com\thistorical\tsecondary\teset-swc-2021\nstatic-doubleclick.net\thistorical\tsecondary\teset-swc-2021\nfonts-gstatic.net\thistorical\tsecondary\teset-swc-2021\nbootstrapcdn.net\thistorical\tsecondary\teset-swc-2021\nhotjar.net\thistorical\tsecondary\teset-swc-2021\nmoatads.co\thistorical\tsecondary\teset-swc-2021\ndoubleclick.ac\thistorical\tsecondary\teset-swc-2021\ncode-afsanalytics.com\thistorical\tsecondary\teset-swc-2021\nsite-improve.net\thistorical\tsecondary\teset-swc-2021\nsitei-mprove.net\thistorical\tsecondary\teset-swc-2021\naddthis.events\thistorical\tsecondary\teset-swc-2021\nsherathis.com\thistorical\tsecondary\teset-swc-2021\nwebfx.bz\thistorical\tsecondary\teset-swc-2021\nwebffx.bz\thistorical\tsecondary\teset-swc-2021\nwebfex.bz\thistorical\tsecondary\teset-swc-2021\nvisitortrack.net\thistorical\tsecondary\teset-swc-2021\nlivesession.bid\thistorical\tsecondary\teset-swc-2021\nlivesesion.bid\thistorical\tsecondary\teset-swc-2021\nengagebay.app\thistorical\tsecondary\teset-swc-2021\nengagebaay.app\thistorical\tsecondary\teset-swc-2021\nclickcease.app\thistorical\tsecondary\teset-swc-2021\nuseproof.cc\thistorical\tsecondary\teset-swc-2021\nyektenet.com\thistorical\tsecondary\teset-swc-2021\nrebrandly.site\thistorical\tsecondary\teset-swc-2021\nmedica-tradefair.co\thistorical\tsecondary\teset-swc-2021\nbitly.bz\thistorical\tsecondary\teset-swc-2021\nbitly.tw\thistorical\tsecondary\teset-swc-2021\nbitly.zone\thistorical\tsecondary\teset-swc-2021\nbitly.tel\thistorical\tsecondary\teset-swc-2021\nbit-ly.site\thistorical\tsecondary\teset-swc-2021\ntinyurl.ist\thistorical\tsecondary\teset-swc-2021\ntinyurl.bz\thistorical\tsecondary\teset-swc-2021\ntinyurl.one\thistorical\tsecondary\teset-swc-2021\ntinyurl.photos\thistorical\tsecondary\teset-swc-2021\ntinyurl.plus\thistorical\tsecondary\teset-swc-2021\nshortlinkcut.link\thistorical\tsecondary\teset-swc-2021\ncuturl.app\thistorical\tsecondary\teset-swc-2021\ncuturl.space\thistorical\tsecondary\teset-swc-2021\nurl-tiny.co\thistorical\tsecondary\teset-swc-2021\nllink.link\thistorical\tsecondary\teset-swc-2021\ninstagrarn.co\thistorical\tsecondary\teset-swc-2021\nstylishblock.com\thistorical\tsecondary\tavast-2022\ncnn24-7.online\thistorical\tsecondary\tcitizenlab-candiru-2021\ndw-arabic.com\thistorical\tsecondary\tcitizenlab-candiru-2021\neuro-news.online\thistorical\tsecondary\tcitizenlab-candiru-2021\nrasef22.com\thistorical\tsecondary\tcitizenlab-candiru-2021\nfrance-24.news\thistorical\tsecondary\tcitizenlab-candiru-2021\namnestyreports.com\thistorical\tsecondary\tcitizenlab-candiru-2021\nblacklivesmatters.info\thistorical\tsecondary\tcitizenlab-candiru-2021\nwomanstudies.co\thistorical\tsecondary\tcitizenlab-candiru-2021\ncortanaupdates.com\thistorical\tsecondary\tcitizenlab-candiru-2021\ngooglplay.store\thistorical\tsecondary\tcitizenlab-candiru-2021\napple-updates.online\thistorical\tsecondary\tcitizenlab-candiru-2021\namazon-cz.eu\thistorical\tsecondary\tcitizenlab-candiru-2021\ndrpbx-update.net\thistorical\tsecondary\tcitizenlab-candiru-2021\nlenovo-setup.tk\thistorical\tsecondary\tcitizenlab-candiru-2021\nkonferenciya-zoom.com\thistorical\tsecondary\tcitizenlab-candiru-2021\nzcombinator.co\thistorical\tsecondary\tcitizenlab-candiru-2021\nlinkedin-jobs.com\thistorical\tsecondary\tcitizenlab-candiru-2021\nfaceb00k-live.com\thistorical\tsecondary\tcitizenlab-candiru-2021\nminstagram.net\thistorical\tsecondary\tcitizenlab-candiru-2021\ntwitt-live.com\thistorical\tsecondary\tcitizenlab-candiru-2021\nyoutubee.life\thistorical\tsecondary\tcitizenlab-candiru-2021\nwikipediaathome.net\thistorical\tsecondary\tcitizenlab-candiru-2021\nosesgy-unmissions.org\thistorical\tsecondary\tcitizenlab-candiru-2021\nwhoint.co\thistorical\tsecondary\tcitizenlab-candiru-2021\nvesteldefnce.io\thistorical\tsecondary\tcitizenlab-candiru-2021\npochtarossiy.info\thistorical\tsecondary\tcitizenlab-candiru-2021\nkupony-rohlik.cz\thistorical\tsecondary\tcitizenlab-candiru-2021\nyeni-safak.com\thistorical\tsecondary\tcitizenlab-candiru-2021\ncyprusnet.tk\thistorical\tsecondary\tcitizenlab-candiru-2021\nlwaeh-iteham-alasra.com\thistorical\tsecondary\tcitizenlab-candiru-2021\nmbsmetoo.com\thistorical\tsecondary\tcitizenlab-candiru-2021\nindoprogress.co\thistorical\tsecondary\tcitizenlab-candiru-2021\n#\n# BRING-YOUR-OWN-VULNERABLE-DRIVER. This is HW.sys / HW64.sys, a LEGITIMATE kernel\n# driver signed by Marvin Test Solutions, Inc. (port/memory/PCI access). Candiru\n# loads it to disable protections (Avast, 'The Return of Candiru', CVE-2022-2294);\n# it is catalogued as an abusable driver by LOLDrivers.\n#\n# IT IS NOT SPYWARE AND IT IS NOT THIS CAMPAIGN'S PAYLOAD. The same file is present\n# on clean machines that legitimately use Marvin Test hardware software. It is tiered\n# `vuln-driver`, NOT `sample`, so that a match is reported as something to look at\n# rather than as proof of infection. Reporting it as a spyware sample would hand a\n# false 'you are infected' to anyone running that hardware - the worst failure this\n# tool can have.\n6a4875ae86131a594019dec4abd46ac6ba47e57a88287b814d07d929858fe3e5\tvuln-driver\tsecondary\tavast-2022\n\n# Source: confiant-adint-2026; published 2026-10-15\n# https://blog.confiant.com/p/adint-weaponized-ad-tech-for-zero-click-spyware-and-mass-identity-vacuuming\n# Exact operational hosts only; the SDK endpoint is delivery-tier JavaScript\n# control, not proof of an implant callback. Tracking/ad contact is not infection.\ndtech.mtrtb.com\tdelivery\tprimary\tconfiant-adint-2026\ntekma.adtimizer.co\tdelivery\tprimary\tconfiant-adint-2026\nwww.discover-tech.io\tdelivery\tprimary\tconfiant-adint-2026\nd8lmy5wyiokrq.cloudfront.net\tdelivery\tprimary\tconfiant-adint-2026\nd23625plpxg1yn.cloudfront.net\tdelivery\tprimary\tconfiant-adint-2026\nd39619tdxn6mhj.cloudfront.net\tdelivery\tprimary\tconfiant-adint-2026\nd2f4zpg1mgzwov.cloudfront.net\tdelivery\tprimary\tconfiant-adint-2026\nd1fzw0miu1r9rc.cloudfront.net\tdelivery\tprimary\tconfiant-adint-2026\nd19oo8r6k9oumb.cloudfront.net\tdelivery\tprimary\tconfiant-adint-2026\nd147nolwbekx2b.cloudfront.net\tdelivery\tprimary\tconfiant-adint-2026\ndcv2rnj2ograe.cloudfront.net\tdelivery\tprimary\tconfiant-adint-2026\nd1x4e580sn23dn.cloudfront.net\tdelivery\tprimary\tconfiant-adint-2026\nd2epnp0vokbtl7.cloudfront.net\tdelivery\tprimary\tconfiant-adint-2026\npagead.trustlayersdk.com\tdelivery\tprimary\tconfiant-adint-2026\n\n# Source: microsoft-devilstongue-2021; published 2021-07-15\n# https://www.microsoft.com/en-us/security/blog/2021/07/15/protecting-customers-from-a-private-sector-offensive-actor-using-0-day-exploits-and-devilstongue-malware/\n# Older Candiru campaign evidence. Historical attribution does not establish\n# current ownership or activity; interpret dated artifacts in source context.\nnoc-service-streamer.com\thistorical\tsecondary\tmicrosoft-devilstongue-2021\nfbcdnads.live\thistorical\tsecondary\tmicrosoft-devilstongue-2021\nhilocake.info\thistorical\tsecondary\tmicrosoft-devilstongue-2021\nbackxercise.com\thistorical\tsecondary\tmicrosoft-devilstongue-2021\nwinmslaf.xyz\thistorical\tsecondary\tmicrosoft-devilstongue-2021\nservice-deamon.com\thistorical\tsecondary\tmicrosoft-devilstongue-2021\nonline-affiliate-mon.com\thistorical\tsecondary\tmicrosoft-devilstongue-2021\ncodeingasmylife.com\thistorical\tsecondary\tmicrosoft-devilstongue-2021\nkenoratravels.com\thistorical\tsecondary\tmicrosoft-devilstongue-2021\nweathercheck.digital\thistorical\tsecondary\tmicrosoft-devilstongue-2021\ncolorpallatess.com\thistorical\tsecondary\tmicrosoft-devilstongue-2021\nlibrary-update.com\thistorical\tsecondary\tmicrosoft-devilstongue-2021\nonline-source-validate.com\thistorical\tsecondary\tmicrosoft-devilstongue-2021\ngrayhornet.com\thistorical\tsecondary\tmicrosoft-devilstongue-2021\njohnshopkin.net\thistorical\tsecondary\tmicrosoft-devilstongue-2021\neulenformacion.com\thistorical\tsecondary\tmicrosoft-devilstongue-2021\n\n# Source: avast-2022; published 2022-07-21\n# https://github.com/gendigitalinc/ioc/blob/95f8e5920fa5b518801904099e603ec86fde95ba/Candiru/README.md\n# Older Candiru campaign evidence. Historical attribution does not establish\n# current ownership or activity; interpret dated artifacts in source context.\nbad-shop.net\thistorical\tsecondary\tavast-2022\nbestcarent.org\thistorical\tsecondary\tavast-2022\ncore-update.com\thistorical\tsecondary\tavast-2022\ndatanalytic.org\thistorical\tsecondary\tavast-2022\nexpertglobal.org\thistorical\tsecondary\tavast-2022\nonly-music.net\thistorical\tsecondary\tavast-2022\npopsonglist.com\thistorical\tsecondary\tavast-2022\nquerylight.net\thistorical\tsecondary\tavast-2022\nsmartstand.org\thistorical\tsecondary\tavast-2022\nwebs-update.com\thistorical\tsecondary\tavast-2022\n\n# Source: citizenlab-candiru-2021; published 2021-07-15\n# https://citizenlab.ca/research/hooking-candiru-another-mercenary-spyware-vendor-comes-into-focus/\n# Older Candiru campaign evidence. Historical attribution does not establish\n# current ownership or activity; interpret dated artifacts in source context.\nrefugeeinternational.org\thistorical\tsecondary\tcitizenlab-candiru-2021\ngenderconference.org\thistorical\tsecondary\tcitizenlab-candiru-2021\nun-asia.co\thistorical\tsecondary\tcitizenlab-candiru-2021\narmenpress.net\thistorical\tsecondary\tcitizenlab-candiru-2021\ntehrantimes.org\thistorical\tsecondary\tcitizenlab-candiru-2021\ntotal-slovenia-news.net\thistorical\tsecondary\tcitizenlab-candiru-2021\n\n# Source: citizenlab-catalangate-2022; published 2022-04-18\n# https://citizenlab.ca/research/catalangate-extensive-mercenary-spyware-operation-against-catalans-using-pegasus-candiru/\n# Older Candiru campaign evidence. Historical attribution does not establish\n# current ownership or activity; interpret dated artifacts in source context.\nstat.email\thistorical\tsecondary\tcitizenlab-catalangate-2022\nadtrack.link\thistorical\tsecondary\tcitizenlab-catalangate-2022\ncortana.cloud\thistorical\tsecondary\tcitizenlab-catalangate-2022\nrbtlnk.net\thistorical\tsecondary\tcitizenlab-catalangate-2022\n\n# Source: google-tag-candiru-2021; published 2021-07-14\n# https://blog.google/threat-analysis-group/how-we-protect-users-0-day-attacks/\n# Older Candiru campaign evidence. Historical attribution does not establish\n# current ownership or activity; interpret dated artifacts in source context.\nlragir.org\thistorical\tsecondary\tgoogle-tag-candiru-2021\narmradio.org\thistorical\tsecondary\tgoogle-tag-candiru-2021\nasbares.com\thistorical\tsecondary\tgoogle-tag-candiru-2021\narmtimes.net\thistorical\tsecondary\tgoogle-tag-candiru-2021\narmlur.org\thistorical\tsecondary\tgoogle-tag-candiru-2021\narmenpress.org\thistorical\tsecondary\tgoogle-tag-candiru-2021\nhraparak.org\thistorical\tsecondary\tgoogle-tag-candiru-2021\narmtimes.org\thistorical\tsecondary\tgoogle-tag-candiru-2021\nhetq.org\thistorical\tsecondary\tgoogle-tag-candiru-2021\nlioiamcount.com\thistorical\tsecondary\tgoogle-tag-candiru-2021\ndb-control-uplink.com\thistorical\tsecondary\tgoogle-tag-candiru-2021\nkidone.xyz\thistorical\tsecondary\tgoogle-tag-candiru-2021\nworkaj.com\thistorical\tsecondary\tgoogle-tag-candiru-2021\nwordzmncount.com\thistorical\tsecondary\tgoogle-tag-candiru-2021\n\n# Source: amnesty-candiru-indonesia-2024; published 2024-05-01\n# https://securitylab.amnesty.org/latest/2024/05/a-web-of-surveillance/\n# Older Candiru campaign evidence. Historical attribution does not establish\n# current ownership or activity; interpret dated artifacts in source context.\naqaf.net\thistorical\tsecondary\tamnesty-candiru-indonesia-2024\ngelora.org\thistorical\tsecondary\tamnesty-candiru-indonesia-2024\nnusantaraqurban.com\thistorical\tsecondary\tamnesty-candiru-indonesia-2024\n"}, {"name": "Curated mercenary-spyware indicators (CC0)", "text": "# Curated mercenary-spyware indicators not available in any machine-readable feed\n# as-of: 2026-10-25\n# ^ Curated date; the staleness reference for this file.\n# Licence: CC0 1.0 (as iocs/LICENSE.md). Indicators are facts; the citations below\n#   name the researchers who published them.\n# Method: every value was read out of the raw text of the cited report (not from a\n#   summary), and its ROLE is recorded from the report's own description.\n# Format: indicator <TAB> tier <TAB> confidence <TAB> source-tag <TAB> family\n#\n# Sources\n#   citizenlab-paragon-2025-03  The Citizen Lab, 'Virtue or Vice? A First Look at Paragon's\n#       Proliferating Spyware Operations' (2025-03-19).\n#       https://citizenlab.ca/research/a-first-look-at-paragons-proliferating-spyware-operations/\n#   citizenlab-paragon-2025-06  The Citizen Lab, 'Graphite Caught: First Forensic Confirmation of\n#       Paragon's iOS Mercenary Spyware Finds Journalists Targeted' (2025-06-12).\n#       https://citizenlab.ca/research/first-forensic-confirmation-of-paragons-ios-mercenary-spyware-finds-journalists-targeted/\n#\n# NOT included, deliberately:\n#   - customer-deployment IPs the report publishes only partially (e.g. 67.69.21.xxx);\n#   - certificate name 'forti.external-Sht_prd_2.com' (not a valid hostname: underscore);\n#   - BIGPRETZEL / SMALLPRETZEL: named forensic indicators whose values are not published.\n#\n#\n# --- Tier 1: victim-facing Graphite servers (devices are expected to contact these)\n# Server the journalist's iPhone contacted (Jan-Feb 2025, iOS 18.2.1); rented from EDIS Global; matched Paragon Fingerprint P1 until at least 2025-04-12. Links both cases to one operator.\n46.183.184.91\tinfrastructure-ip\tprimary\tcitizenlab-paragon-2025-06\tParagon Graphite\n# Tier 1 IP (Fingerprint P1) that also returned cert CN=forti.external-Staging-02.com, Jul-Sep 2023.\n84.110.122.27\tinfrastructure-ip\tprimary\tcitizenlab-paragon-2025-03\tParagon Graphite\n# Tier 1 IP (Fingerprint P1) that later returned cert CN=awake-wood.io.\n178.237.39.204\tinfrastructure-ip\tprimary\tcitizenlab-paragon-2025-03\tParagon Graphite\n# Certificate name seen on Tier 1 IP 178.237.39.204.\nawake-wood.io\tinfrastructure\tprimary\tcitizenlab-paragon-2025-03\tParagon Graphite\n# Certificate name seen on Tier 1 IP 84.110.122.27 (lower-cased).\nforti.external-staging-02.com\tinfrastructure\tprimary\tcitizenlab-paragon-2025-03\tParagon Graphite\n#\n# --- Tier 2: Paragon / customer premises (operator side). Ordinary devices are NOT expected\n#     to contact these; the names are certificate common names and may not resolve in DNS.\n#     Static IPs in Israel that returned Tier 2 certificates (Table 2):\n84.110.47.82\tinfrastructure-ip\tprimary\tcitizenlab-paragon-2025-03\tParagon Graphite\n84.110.47.83\tinfrastructure-ip\tprimary\tcitizenlab-paragon-2025-03\tParagon Graphite\n84.110.47.84\tinfrastructure-ip\tprimary\tcitizenlab-paragon-2025-03\tParagon Graphite\n84.110.47.85\tinfrastructure-ip\tprimary\tcitizenlab-paragon-2025-03\tParagon Graphite\n84.110.47.86\tinfrastructure-ip\tprimary\tcitizenlab-paragon-2025-03\tParagon Graphite\n# Tier 2 certificate names on the Israeli IPs (Table 2):\nforti.paraccess.com\tinfrastructure\tprimary\tcitizenlab-paragon-2025-03\tParagon Graphite\nmodern-money.org\tinfrastructure\tprimary\tcitizenlab-paragon-2025-03\tParagon Graphite\nancient-thing.it\tinfrastructure\tprimary\tcitizenlab-paragon-2025-03\tParagon Graphite\n#     Certificate names on suspected customer deployments (codename initial matches country):\nexternal-astra.com\tinfrastructure\tprimary\tcitizenlab-paragon-2025-03\tParagon Graphite\ninternal-abba.com\tinfrastructure\tprimary\tcitizenlab-paragon-2025-03\tParagon Graphite\nexternal-cap.com\tinfrastructure\tprimary\tcitizenlab-paragon-2025-03\tParagon Graphite\nexternal-drt.com\tinfrastructure\tprimary\tcitizenlab-paragon-2025-03\tParagon Graphite\nforti.external-muki.com\tinfrastructure\tprimary\tcitizenlab-paragon-2025-03\tParagon Graphite\nexternal-cag.com\tinfrastructure\tprimary\tcitizenlab-paragon-2025-03\tParagon Graphite\nforti.external-sht.com\tinfrastructure\tprimary\tcitizenlab-paragon-2025-03\tParagon Graphite\nforti.external-shotgun3.com\tinfrastructure\tprimary\tcitizenlab-paragon-2025-03\tParagon Graphite\nforti.external-sht-prd-4.com\tinfrastructure\tprimary\tcitizenlab-paragon-2025-03\tParagon Graphite\nforti.internal-stg.com\tinfrastructure\tprimary\tcitizenlab-paragon-2025-03\tParagon Graphite\n"}];
+</script>
+<script>
+/* Page logic: indicators, file selection, running the check, showing and exporting results. */
+(function(){
+'use strict';
+const {IocSet,parseCurated,parseAny,parseStix,parseList}=ZBI, X=ZBX, C=ZBC;
+const VERSION='0.1.0';
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtN=n=>Number(n).toLocaleString();
+const fmtB=n=>n>=1073741824?(n/1073741824).toFixed(1)+' GB':n>=1048576?(n/1048576).toFixed(1)+' MB':n>=1024?Math.round(n/1024)+' KB':n+' B';
+const defang=s=>String(s).replace(/\./g,'[.]');
+
+/* ---------------- indicators ---------------- */
+const state={iocs:new IocSet(),sets:[],entries:[],res:null,ctx:null,cancel:false,running:false,verdict:null,password:'',feedStatus:{}};
+const SOURCES=window.__SOURCES__, BUNDLED=window.__BUNDLED__;
+const DB_NAME='zb-web-indicators',STORE='feeds';
+function idb(){return new Promise((res,rej)=>{try{const r=indexedDB.open(DB_NAME,1);r.onupgradeneeded=()=>r.result.createObjectStore(STORE,{keyPath:'id'});r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}catch(e){rej(e)}})}
+async function idbAll(){try{const db=await idb();return await new Promise((res,rej)=>{const q=db.transaction(STORE).objectStore(STORE).getAll();q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)})}catch(e){return []}}
+async function idbPut(rec){try{const db=await idb();await new Promise((res,rej)=>{const t=db.transaction(STORE,'readwrite');t.objectStore(STORE).put(rec);t.oncomplete=res;t.onerror=()=>rej(t.error)});return true}catch(e){return false}}
+async function idbClear(){try{const db=await idb();await new Promise((res,rej)=>{const t=db.transaction(STORE,'readwrite');t.objectStore(STORE).clear();t.oncomplete=res;t.onerror=()=>rej(t.error)})}catch(e){}}
+
+function summariseSet(name,set,kind,extra){const st=(set.sets&&set.sets[0])||{};return {name,kind,usable:st.usable||set.count,refused:st.refused||{},notApplicable:st.notApplicable||{},families:st.families||{},asof:set.asof||'',fetchedAt:extra&&extra.fetchedAt||'',error:extra&&extra.error||''}}
+async function buildIocs(){
+  const all=new IocSet();const sets=[];
+  for(const b of BUNDLED){try{const s=parseCurated(b.text,b.name);all.merge(s);sets.push(summariseSet(b.name,s,'built in'))}catch(e){sets.push({name:b.name,kind:'built in',error:e.message,usable:0})}}
+  const cached=await idbAll();
+  for(const rec of cached){
+    const src=SOURCES.find(s=>s.id===rec.id);if(!src)continue;
+    try{
+      const sha=await C.sha256hex(new TextEncoder().encode(rec.text));
+      if(sha!==rec.sha256)throw new Error('the saved copy was changed or damaged, so it was ignored');
+      const s=parseSource(src,rec.text);all.merge(s);sets.push(summariseSet(src.name,s,'downloaded',{fetchedAt:rec.fetchedAt}));
+    }catch(e){sets.push({name:src.name,kind:'downloaded',error:e.message,usable:0})}
+  }
+  for(const u of state.userSets||[])all.merge(u.set),sets.push(u.summary);
+  state.iocs=all;state.sets=sets;renderIocs();
+}
+function parseSource(src,text){
+  if(src.format==='stix2')return parseStix(text,src.cite+' ('+src.name+')',src.family||'',src.category||'',src.name);
+  return parseList(text,src.format,src.cite+' ('+src.name+')',src.family||'',src.category||'',src.name);
+}
+function renderIocs(){
+  const c=state.iocs;
+  $('#iocCount').textContent=fmtN(c.count);
+  $('#iocAsof').textContent=c.asof?('Built-in lists dated '+c.asof+'.'):'';
+  const dl=state.sets.filter(s=>s.kind==='downloaded'&&!s.error).length;
+  $('#iocWho').textContent=dl?'Includes '+dl+' downloaded list'+(dl===1?'':'s')+'.':'Only the small built-in set is loaded. Press Update to add the published lists.';
+  const rows=state.sets.map(s=>`<tr><td>${esc(s.name)}<\/td><td>${esc(s.kind)}<\/td><td class="num">${s.error?'-':fmtN(s.usable)}<\/td><td>${s.error?'<span class="bad">'+esc(s.error)+'<\/span>':esc(s.fetchedAt?('fetched '+s.fetchedAt.slice(0,10)):(s.asof||''))}<\/td><\/tr>`).join('');
+  $('#iocTable').innerHTML=rows||'<tr><td colspan="4">None<\/td><\/tr>';
+}
+async function updateLists(){
+  const btn=$('#updateBtn');btn.disabled=true;const out=$('#updateStatus');out.textContent='Contacting raw.githubusercontent.com…';
+  let okN=0,fail=0;const prev=new Map((await idbAll()).map(r=>[r.id,r]));
+  for(const [i,src] of SOURCES.entries()){
+    out.textContent='Downloading '+(i+1)+' of '+SOURCES.length+': '+src.name+'…';
+    try{
+      const r=await fetch(src.url,{credentials:'omit',referrerPolicy:'no-referrer',cache:'no-store',redirect:'error'});
+      if(!r.ok)throw new Error('HTTP '+r.status);
+      const buf=new Uint8Array(await r.arrayBuffer());
+      if(buf.length>64*1048576)throw new Error('larger than any published list; refused');
+      const head=new TextDecoder().decode(buf.subarray(0,512)).trimStart().toLowerCase();
+      if(/^(<!doctype html|<html|<head|<body)/.test(head))throw new Error('got a web page instead of a list; refused');
+      const text=new TextDecoder('utf-8').decode(buf);
+      const set=parseSource(src,text);
+      const old=prev.get(src.id);
+      if(old&&old.count&&set.count<old.count/2)throw new Error('the new list is less than half the size of the saved one; kept the saved copy');
+      const rec={id:src.id,text,sha256:await C.sha256hex(buf),fetchedAt:new Date().toISOString(),count:set.count};
+      if(!(await idbPut(rec)))throw new Error('this browser would not save it');
+      okN++;
+    }catch(e){fail++;state.feedStatus[src.id]=e.message;console.warn(src.id,e.message)}
+  }
+  await buildIocs();
+  out.textContent=okN+' list'+(okN===1?'':'s')+' updated'+(fail?(', '+fail+' failed (the previous copy, if any, was kept)'):'')+'.';
+  btn.disabled=false;
+}
+async function clearLists(){await idbClear();await buildIocs();$('#updateStatus').textContent='Downloaded lists removed.'}
+async function loadOwn(files){
+  state.userSets=state.userSets||[];
+  for(const f of files){
+    try{const text=await f.text();const set=parseAny(text,f.name);state.userSets.push({set,summary:summariseSet(f.name,set,'your file')});}
+    catch(e){state.userSets.push({set:new IocSet(),summary:{name:f.name,kind:'your file',error:e.message,usable:0}})}
+  }
+  await buildIocs();
+}
+
+/* ---------------- file selection ---------------- */
+const MAX_FILES=300000;
+function mkEntry(file,path){return {path:path.replace(/^\/+/,''),name:file.name,size:file.size,read:async()=>new Uint8Array(await file.arrayBuffer())}}
+function fromInput(list){const out=[];for(const f of list){out.push(mkEntry(f,f.webkitRelativePath||f.name));if(out.length>MAX_FILES)break}return out}
+async function fromDrop(items){
+  const out=[];
+  const readAll=r=>new Promise((res,rej)=>{const all=[];const next=()=>r.readEntries(b=>{if(!b.length)res(all);else{all.push(...b);next()}},rej);next()});
+  async function walk(en){
+    if(out.length>MAX_FILES)return;
+    if(en.isFile){await new Promise(res=>en.file(f=>{out.push(mkEntry(f,en.fullPath));res()},()=>res()))}
+    else if(en.isDirectory){for(const c of await readAll(en.createReader()))await walk(c)}
+  }
+  const ens=[];for(const it of items){const en=it.webkitGetAsEntry&&it.webkitGetAsEntry();if(en)ens.push(en)}
+  for(const en of ens)await walk(en);
+  return out;
+}
+function setEntries(list){
+  state.entries=list;state.res=null;$('#results').hidden=true;
+  const roots=ZBX.__group?ZBX.__group(list):null;
+  const bytes=list.reduce((a,e)=>a+e.size,0);
+  const kinds=[];
+  const names=new Set(list.map(e=>e.path));
+  const dirOf=p=>p.includes('/')?p.slice(0,p.lastIndexOf('/')+1):'';
+  let ios=0,andr=0;
+  for(const e of list){const d=dirOf(e.path);
+    if(e.name==='Manifest.db'&&(names.has(d+'Manifest.plist')||list.some(x=>x.path.startsWith(d)&&/^[0-9a-f]{2}\/[0-9a-f]{40}$/.test(x.path.slice(d.length)))))ios++;
+    if(e.name==='packages.json'&&(names.has(d+'getprop.txt')||names.has(d+'processes.json')||names.has(d+'files.json')))andr++;}
+  if(ios)kinds.push(ios+' iPhone backup'+(ios>1?'s':''));if(andr)kinds.push(andr+' Android collection'+(andr>1?'s':''));
+  $('#selSummary').innerHTML=list.length?`<strong>${fmtN(list.length)}<\/strong> file${list.length===1?'':'s'} (${fmtB(bytes)}) ready to check${kinds.length?'. Recognised: '+esc(kinds.join(', '))+'.':'.'}`:'Nothing chosen yet.';
+  $('#runBtn').disabled=!list.length;
+}
+
+/* ---------------- running ---------------- */
+function makeCtx(){
+  return {iocs:state.iocs,res:new X.Result(),version:VERSION,maxHashBytes:200*1048576,maxStringBytes:64*1048576,maxFileBytes:512*1048576,
+    password:state.password,setSummaries:state.sets.map(s=>({name:s.name,kind:s.kind,usable:s.usable,error:s.error||undefined})),
+    progress:msg=>{$('#progText').textContent=msg},cancelled:()=>state.cancel}
+}
+async function run(){
+  if(state.running||!state.entries.length)return;
+  if(!state.iocs.count){alert('No indicators are loaded.');return}
+  state.running=true;state.cancel=false;state.password=$('#pw').value;
+  $('#runBtn').disabled=true;$('#cancelBtn').hidden=false;$('#prog').hidden=false;$('#results').hidden=true;$('#pwBox').hidden=true;
+  const ctx=makeCtx();state.ctx=ctx;
+  let needPw=null;
+  try{await X.runScan(ctx,state.entries)}
+  catch(e){
+    if(e instanceof X.NeedPassword){needPw=e.message}
+    else if(e.message==='cancelled'){ctx.res.note('The check was cancelled; results below are partial.');ctx.res.gap('scan','cancelled before all files were checked')}
+    else{ctx.res.gap('scan','stopped: '+e.message)}
+  }
+  state.password='';$('#pw').value='';
+  state.running=false;$('#cancelBtn').hidden=true;$('#prog').hidden=true;$('#runBtn').disabled=false;
+  if(needPw){showPassword(needPw);return}
+  if(ctx.needsPassword)showPassword('This Android collection contains an encrypted SMS backup. Enter its backup password and check again to include it, or ignore this to skip it.',true);
+  state.res=ctx.res;state.verdict=X.verdict(ctx.res);renderResults();
+}
+function showPassword(msg,soft){const b=$('#pwBox');b.hidden=false;$('#pwMsg').textContent=msg;$('#pw').focus();if(!soft)$('#results').hidden=true}
+
+/* ---------------- results ---------------- */
+const TIER_NOTE={'stalkerware':'On a computer, a stalkerware-list match is "worth a look", never a finding: some of these are family-safety apps people install knowingly.','vuln-driver':'A legitimate signed driver this actor abuses. Present on clean machines too.','infrastructure-ip':'An IP address. Hosting is often reassigned, so an undated match proves little.','candiru-ip':'An IP address. Hosting is often reassigned, so an undated match proves little.','historical':'From an older, separate campaign.'};
+function hitHtml(h){
+  const where=[h.artifact,h.location].filter(Boolean).join(' / ');
+  const note=TIER_NOTE[h.tier]||'';
+  const ind=(h.type==='domain'||h.type==='ip')?defang(h.indicator):h.indicator;
+  return `<li class="hit"><div class="hit-top"><code class="ind">${esc(ind)}<\/code>${h.family?`<span class="badge">${esc(h.family)}<\/span>`:''}<span class="badge soft">${esc(h.type)}<\/span><\/div>
+    <div class="hit-where"><span>Where<\/span> ${esc(where)}<\/div>${h.profile?`<div class="hit-where"><span>Profile<\/span> ${esc(h.profile)}<\/div>`:''}${h.observed?`<div class="hit-where"><span>When<\/span> ${esc(h.observed)}<\/div>`:''}
+    ${h.detail?`<div class="hit-where"><span>What<\/span> ${esc(h.detail)}<\/div>`:''}
+    ${h.context?`<div class="hit-where"><span>Seen as<\/span> <code>${esc(String(h.context).replace(/\./g,'[.]').slice(0,200))}<\/code><\/div>`:''}
+    <div class="hit-src"><span>Source<\/span> ${esc(h.source||'unknown')}${h.confidence?` (${esc(h.confidence)})`:''}<\/div>${note?`<div class="hit-note">${esc(note)}<\/div>`:''}<\/li>`;
+}
+function renderResults(){
+  const res=state.res,v=state.verdict,box=$('#results');box.hidden=false;
+  const byEv=new Map();for(const h of res.hits){if(!byEv.has(h.evidence))byEv.set(h.evidence,[]);byEv.get(h.evidence).push(h)}
+  const groups=[...byEv.entries()].sort((a,b)=>X.rank(a[0])-X.rank(b[0]));
+  const gaps=[...res.gaps.values()];
+  const capped=[...res.capped.entries()].filter(([,n])=>n>25);
+  box.innerHTML=`
+   <div class="verdict ${esc(v.tone)}" role="status"><h2>${esc(v.title)}<\/h2><p>${esc(v.text)}<\/p>
+     <div class="stats"><span><b>${fmtN(res.files)}<\/b> files<\/span><span><b>${fmtN(res.checked)}<\/b> records checked<\/span><span><b>${res.hits.length}<\/b> match${res.hits.length===1?'':'es'}<\/span><span><b>${gaps.length}<\/b> not checked<\/span><\/div><\/div>
+   <div class="actions"><button class="btn" data-dl="report">Download full report (JSON)<\/button><button class="btn" data-dl="text">Download readable report<\/button><button class="btn" data-dl="share">Download minimal summary to share<\/button><\/div>
+   ${v.code==='matches'||v.code==='leads'?`<div class="help"><strong>Get expert help first.<\/strong> You do not need to run anything else. Journalists, activists and human-rights defenders can contact the <a href="https://www.accessnow.org/help/" target="_blank" rel="noopener noreferrer">Access Now Digital Security Helpline<\/a> (free, 24/7) or <a href="https://securitylab.amnesty.org/get-help/" target="_blank" rel="noopener noreferrer">Amnesty International's Security Lab<\/a>. Keep the report. Do not delete anything and do not visit the addresses it names.<\/div>`:''}
+   ${groups.map(([ev,list])=>`<section class="grp ${X.isSerious(ev)?'serious':'quiet'}"><h3>${esc(ev)} <span class="n">${list.length}<\/span><\/h3><p class="meaning">${esc(X.EV_TEXT[ev]||'')}<\/p><ul>${list.map(hitHtml).join('')}<\/ul><\/section>`).join('')}
+   ${capped.length?`<p class="muted">Some indicators matched more than 25 times in one place; only the first 25 are listed.<\/p>`:''}
+   ${res.leads.length?`<section class="grp"><h3>Worth a look <span class="n">${res.leads.length}<\/span><\/h3><ul>${res.leads.map(l=>`<li class="hit"><div class="hit-where"><span>Where<\/span> ${esc(l.location)}<\/div><div class="hit-where">${esc(l.text)}<\/div>${l.why?`<div class="hit-note">${esc(l.why)}<\/div>`:''}<\/li>`).join('')}<\/ul><\/section>`:''}
+   <section class="grp"><h3>What was not checked <span class="n">${gaps.length}<\/span><\/h3><p class="meaning">A check that could not run is a gap, never a clean result.<\/p>
+     <ul class="plain">${gaps.map(g=>`<li><code>${esc(g.check)}<\/code> ${esc(g.reason)}${g.count>1?` <span class="muted">(x${g.count})<\/span>`:''}<\/li>`).join('')||'<li>Nothing recorded.<\/li>'}<\/ul><\/section>
+   <section class="grp"><h3>What did run<\/h3><p class="meaning">${esc([...res.ranChecks].sort().join(', ')||'nothing')}<\/p>${res.notes.map(n=>`<p class="muted">${esc(n)}<\/p>`).join('')}<\/section>`;
+  box.querySelectorAll('[data-dl]').forEach(b=>b.addEventListener('click',()=>download(b.dataset.dl)));
+  box.scrollIntoView({behavior:'smooth',block:'start'});box.setAttribute('tabindex','-1');box.focus({preventScroll:true});
+}
+function download(kind){
+  const ctx=state.ctx,v=state.verdict;let data,name,type='application/json';
+  if(kind==='report'){data=JSON.stringify(X.toReport(ctx,v),null,2);name='zero-breach-report.json'}
+  else if(kind==='share'){data=JSON.stringify(X.toSummary(ctx,v),null,2);name='zero-breach-summary.json'}
+  else{data=X.toText(ctx,v);name='zero-breach-report.txt';type='text/plain'}
+  const url=URL.createObjectURL(new Blob([data],{type}));const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);
+}
+
+/* ---------------- wiring ---------------- */
+function bind(){
+  $('#updateBtn').addEventListener('click',updateLists);
+  $('#clearBtn').addEventListener('click',clearLists);
+  $('#ownBtn').addEventListener('click',()=>$('#ownFile').click());
+  $('#ownFile').addEventListener('change',async e=>{await loadOwn([...e.target.files]);e.target.value=''});
+  $('#dirBtn').addEventListener('click',()=>$('#dirInput').click());
+  $('#filesBtn').addEventListener('click',()=>$('#filesInput').click());
+  $('#dirInput').addEventListener('change',e=>{setEntries(fromInput(e.target.files));});
+  $('#filesInput').addEventListener('change',e=>{setEntries(fromInput(e.target.files));});
+  $('#runBtn').addEventListener('click',run);
+  $('#cancelBtn').addEventListener('click',()=>{state.cancel=true;$('#progText').textContent='Cancelling…'});
+  $('#pwGo').addEventListener('click',run);
+  $('#pw').addEventListener('keydown',e=>{if(e.key==='Enter')run()});
+  const dz=$('#drop');
+  ['dragenter','dragover'].forEach(t=>dz.addEventListener(t,e=>{e.preventDefault();dz.classList.add('over')}));
+  ['dragleave','drop'].forEach(t=>dz.addEventListener(t,e=>{e.preventDefault();dz.classList.remove('over')}));
+  dz.addEventListener('drop',async e=>{
+    const items=e.dataTransfer.items;$('#selSummary').textContent='Reading the dropped items…';
+    try{setEntries(items&&items.length&&items[0].webkitGetAsEntry?await fromDrop(items):fromInput(e.dataTransfer.files))}catch(err){$('#selSummary').textContent='Could not read the dropped items: '+err.message}
+  });
+  dz.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();$('#dirBtn').click()}});
+}
+window.__zb={state,setEntries,run,buildIocs};
+bind();buildIocs().then(()=>setEntries([]));
+})();
+
+</script>
+</body>
+</html>
