@@ -23,3 +23,6 @@ In the repository settings, open **Pages**, choose **Deploy from a branch**, pic
 
 ## COBOL Workbench
 The whole [COBOL Workbench](https://github.com/JulianSoriano/COBOL-Workbench) (13 lessons, editor and in-browser interpreter) is built into `index.html`. Press **COBOL Workbench** in the top bar, or open `index.html#cobol`. It runs in its own frame, so it does not affect the guide's entries. Its programs are saved separately in the browser.
+
+## AppImage Joiner
+The whole [AppImage Joiner](https://github.com/JulianSoriano/AppImage-Joiner) (join split AppImage files, merge PDFs, split PDFs) is built into `index.html`. Press **AppImage Joiner** in the top bar, or open `index.html#aj`. Everything runs in the browser; nothing is uploaded. PDF handling uses pdf-lib 1.17.1 (MIT), embedded in the page (its licence text is included in the file).
