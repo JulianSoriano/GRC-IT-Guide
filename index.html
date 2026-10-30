@@ -172,6 +172,12 @@ code{font-family:var(--f-mono);font-size:.88em;background:var(--surface-2);paddi
   .hide-sm{display:none}
 }
 @media (prefers-reduced-motion:no-preference){.row,.catbtn,.btn{transition:background .12s}}
+
+/* COBOL Workbench section (the whole app runs in an isolated frame) */
+#cobolView{position:fixed;inset:0;z-index:15;display:grid;grid-template-rows:auto 1fr;background:var(--bg)}
+#cobolView .cbar{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--surface)}
+#cobolView .cbar h2{font-family:var(--f-display);font-weight:800;font-size:17px;margin:0 auto 0 0}
+#cobolView iframe{width:100%;height:100%;border:0;background:#fff;min-height:0}
 </style>
 </head>
 <body>
@@ -183,6 +189,7 @@ code{font-family:var(--f-mono);font-size:.88em;background:var(--surface-2);paddi
       <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
       <input id="q" type="search" placeholder="Search terms, notes, tags" autocomplete="off" aria-label="Search">
     </div>
+    <button class="btn" id="cobolBtn" type="button" title="Learn and run COBOL in the browser">COBOL Workbench</button>
     <button class="btn" id="cardsBtn" type="button">Flashcards</button>
     <button class="btn" id="exportBtn" type="button" title="Download a backup of all entries">Export</button>
     <button class="btn" id="importBtn" type="button" title="Add entries from a backup file">Import</button>
@@ -199,6 +206,3242 @@ code{font-family:var(--f-mono);font-size:.88em;background:var(--surface-2);paddi
     </div>
   </div>
 </div>
+<div id="cobolView" hidden>
+  <div class="cbar"><button class="btn" id="cobolBack" type="button">&larr; Back to guide</button><h2>COBOL Workbench</h2><span class="label hide-sm">Esc to close</span></div>
+  <iframe id="cobolFrame" title="COBOL Workbench" allow="clipboard-write"></iframe>
+</div>
+<script type="text/plain" id="cobol-src"><!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>COBOL Workbench</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>
+/* Layout: a coding-form workbench. Lesson rail on the left, punch-column editor on the right, green-bar SYSOUT printout underneath. */
+:root {
+  --paper: #F2F6F1;
+  --panel: #FAFCF9;
+  --ink: #17231D;
+  --ink-2: #4A5D53;
+  --rule: #C6D9CA;
+  --band: #E2ECE3;
+  --band-2: #D3E3D6;
+  --accent: #1B5BAE;
+  --accent-ink: #FFFFFF;
+  --accent-soft: #E1EBF8;
+  --margin: #C4442C;
+  --ok: #1D7849;
+  --ok-soft: #DDF0E4;
+  --bad: #B3261E;
+  --bad-soft: #FAE3E0;
+  --kw: #1B5BAE;
+  --str: #8A5300;
+  --num: #A0266A;
+  --com: #6B8075;
+  --para: #0D6B4A;
+  --div: #5B3FA3;
+  --sysout: #FFFFFF;
+  --bar: #E8F3EA;
+  --shadow: 0 1px 0 rgba(23, 35, 29, .06), 0 6px 18px rgba(23, 35, 29, .06);
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --f-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-cond: "IBM Plex Sans Condensed", "IBM Plex Sans", "Arial Narrow", system-ui, sans-serif;
+  --lh: 21px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0E1412; --panel: #131B18; --ink: #D5E5DB; --ink-2: #92A79B; --rule: #263630; --band: #16211D; --band-2: #1C2A25;
+    --accent: #82B3F7; --accent-ink: #0B1A2E; --accent-soft: #182A3E; --margin: #E2775F;
+    --ok: #62D49C; --ok-soft: #12301F; --bad: #FF8E84; --bad-soft: #3A1714;
+    --kw: #8EBAFF; --str: #E4BA6C; --num: #EE95C7; --com: #6F877A; --para: #70D7A9; --div: #BBA5F6;
+    --sysout: #101816; --bar: #15211B; --shadow: 0 1px 0 rgba(0, 0, 0, .3), 0 6px 18px rgba(0, 0, 0, .25);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0E1412; --panel: #131B18; --ink: #D5E5DB; --ink-2: #92A79B; --rule: #263630; --band: #16211D; --band-2: #1C2A25;
+  --accent: #82B3F7; --accent-ink: #0B1A2E; --accent-soft: #182A3E; --margin: #E2775F;
+  --ok: #62D49C; --ok-soft: #12301F; --bad: #FF8E84; --bad-soft: #3A1714;
+  --kw: #8EBAFF; --str: #E4BA6C; --num: #EE95C7; --com: #6F877A; --para: #70D7A9; --div: #BBA5F6;
+  --sysout: #101816; --bar: #15211B; --shadow: 0 1px 0 rgba(0, 0, 0, .3), 0 6px 18px rgba(0, 0, 0, .25);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font: 15px/1.55 var(--f-sans);
+  display: flex; flex-direction: column;
+  padding-top: env(safe-area-inset-top, 0px);
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+code, kbd { font-family: var(--f-mono); font-size: .88em; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+[hidden] { display: none !important; }
+
+/* ---------- top bar ---------- */
+.appbar {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding-block: 10px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  border-bottom: 1px solid var(--rule); background: var(--panel);
+}
+.brand { display: flex; align-items: baseline; gap: 10px; margin-right: auto; min-width: 0; }
+.brand h1 { margin: 0; font: 600 19px/1 var(--f-cond); letter-spacing: .01em; }
+.brand h1 span { color: var(--accent); }
+.brand small { font: 500 12px/1 var(--f-mono); color: var(--ink-2); letter-spacing: .04em; white-space: nowrap; }
+.toolbar { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.sep { width: 1px; height: 24px; background: var(--rule); margin: 0 4px; }
+.btn {
+  display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px;
+  border: 1px solid var(--rule); background: var(--panel); border-radius: 6px; cursor: pointer;
+  font: 500 14px/1 var(--f-sans); white-space: nowrap;
+}
+.btn:hover { border-color: var(--ink-2); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.ghost { border-color: transparent; background: transparent; }
+.btn.ghost:hover { background: var(--band); }
+.btn svg { width: 15px; height: 15px; flex: none; }
+.seg { display: inline-flex; border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; height: 34px; }
+.seg button { border: 0; background: transparent; padding: 0 10px; cursor: pointer; font: 500 13px/1 var(--f-cond); letter-spacing: .03em; color: var(--ink-2); }
+.seg button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); }
+
+/* ---------- main layout ---------- */
+.main { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); }
+.rail { border-right: 1px solid var(--rule); background: var(--panel); display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+.tabs { display: flex; border-bottom: 1px solid var(--rule); padding: 0 8px; gap: 2px; }
+.tabs button {
+  border: 0; background: none; padding: 12px 10px 10px; cursor: pointer; color: var(--ink-2);
+  font: 600 13px/1 var(--f-cond); letter-spacing: .06em; text-transform: uppercase; border-bottom: 2px solid transparent;
+}
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.pane { overflow: auto; padding: 16px 18px 28px; flex: 1; min-height: 0; }
+.pane h2 { font: 600 22px/1.2 var(--f-cond); margin: 4px 0 10px; text-wrap: balance; }
+.pane h3 { font: 600 13px/1 var(--f-cond); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); margin: 22px 0 8px; }
+.pane p, .pane li { max-width: 62ch; }
+.pane ul { padding-left: 20px; margin: 8px 0; }
+.pane li { margin: 4px 0; }
+.pane code { background: var(--band); padding: 1px 4px; border-radius: 3px; }
+table.mini { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 14px; }
+table.mini td { padding: 6px 8px; border-top: 1px solid var(--rule); vertical-align: top; }
+table.mini td:first-child { white-space: nowrap; width: 1%; }
+table.mini code { background: none; padding: 0; color: var(--kw); }
+
+.chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(34px, 1fr)); gap: 6px; margin-bottom: 14px; }
+.chip {
+  height: 34px; border: 1px solid var(--rule); border-radius: 6px; background: var(--paper); cursor: pointer;
+  font: 600 13px/1 var(--f-mono); font-variant-numeric: tabular-nums; position: relative; color: var(--ink-2);
+}
+.chip.cur { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.chip.done::after { content: ""; position: absolute; right: 3px; top: 3px; width: 7px; height: 7px; border-radius: 50%; background: var(--ok); }
+.eyebrow { font: 500 12px/1 var(--f-mono); color: var(--ink-2); letter-spacing: .06em; text-transform: uppercase; }
+
+.challenge { margin-top: 18px; border: 1px solid var(--rule); border-radius: 8px; background: var(--paper); padding: 14px; }
+.challenge h3 { margin: 0 0 8px; }
+.challenge p { margin: 0 0 10px; }
+.challenge .row { display: flex; gap: 8px; flex-wrap: wrap; }
+.hint { margin-top: 10px; font-size: 14px; color: var(--ink-2); }
+.hint code { white-space: normal; }
+.verdict { margin-top: 10px; padding: 10px 12px; border-radius: 6px; font-size: 14px; }
+.verdict.ok { background: var(--ok-soft); color: var(--ok); }
+.verdict.bad { background: var(--bad-soft); color: var(--bad); }
+.verdict code { background: transparent; }
+.lesson-nav { display: flex; justify-content: space-between; gap: 8px; margin-top: 18px; }
+
+.files { list-style: none; margin: 10px 0; padding: 0; display: grid; gap: 6px; }
+.files li { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--rule); border-radius: 6px; background: var(--paper); }
+.files li.cur { border-color: var(--accent); }
+.files .fname { font: 500 14px/1.2 var(--f-mono); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; background: none; border: 0; text-align: left; padding: 0; }
+.files .fdate { font-size: 12px; color: var(--ink-2); white-space: nowrap; }
+.empty { color: var(--ink-2); font-size: 14px; padding: 12px; border: 1px dashed var(--rule); border-radius: 6px; }
+
+.colmap { display: grid; grid-template-columns: 6fr 1fr 4fr 61fr 8fr; border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; font: 500 11px/1.25 var(--f-cond); text-align: center; margin: 8px 0 4px; }
+.colmap div { padding: 8px 2px; border-right: 1px solid var(--rule); background: var(--paper); min-width: 0; }
+.colmap div:last-child { border-right: 0; }
+.colmap b { display: block; font: 600 12px/1.2 var(--f-mono); }
+.colmap .a { background: var(--accent-soft); }
+.colmap .s, .colmap .x { background: var(--band); color: var(--ink-2); }
+
+/* ---------- work area ---------- */
+.work { display: grid; grid-template-rows: auto minmax(0, 1fr) minmax(170px, 36%); min-height: 0; min-width: 0; }
+.docbar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 14px; border-bottom: 1px solid var(--rule); background: var(--paper);
+}
+.docname { font: 600 14px/1 var(--f-mono); display: flex; align-items: center; gap: 6px; min-width: 0; }
+.docname input { font: 600 14px/1 var(--f-mono); border: 1px solid transparent; background: transparent; padding: 5px 6px; border-radius: 4px; width: 22ch; max-width: 46vw; text-transform: uppercase; }
+.docname input:hover, .docname input:focus { border-color: var(--rule); background: var(--panel); }
+.docname .ext { color: var(--ink-2); }
+.saved { font-size: 12px; color: var(--ink-2); margin-right: auto; }
+.status { font: 500 12px/1 var(--f-mono); color: var(--ink-2); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.status b { color: var(--accent); font-weight: 600; }
+
+.editor { position: relative; display: flex; flex-direction: column; min-height: 0; min-width: 0; background: var(--panel); }
+.ruler { min-width: 0; height: 24px; overflow: hidden; border-bottom: 1px solid var(--rule); background: var(--paper); display: flex; flex: none; }
+.ruler .gutter-pad { flex: none; width: 52px; border-right: 1px solid var(--rule); font: 600 10px/24px var(--f-cond); color: var(--ink-2); text-align: center; letter-spacing: .06em; }
+.ruler-clip { overflow: hidden; flex: 1; position: relative; min-width: 0; }
+.ruler-inner { font: 13px/24px var(--f-mono); padding-left: 12px; white-space: pre; color: var(--ink-2); will-change: transform; }
+.ruler-inner span.m { color: var(--accent); font-weight: 600; }
+.ruler-inner span.r { color: var(--margin); font-weight: 600; }
+.ruler-inner span.on { background: var(--accent); color: var(--accent-ink); border-radius: 2px; }
+.ed-body { flex: 1; display: flex; min-height: 0; min-width: 0; position: relative; }
+.gutter { flex: none; width: 52px; overflow: hidden; border-right: 1px solid var(--rule); background: var(--paper); }
+.gutter-inner { padding: 10px 8px 10px 0; font: 13px/var(--lh) var(--f-mono); text-align: right; color: var(--ink-2); font-variant-numeric: tabular-nums; will-change: transform; }
+.gutter-inner div.err { color: var(--bad); font-weight: 600; background: var(--bad-soft); }
+.code-wrap { position: relative; flex: 1; min-width: 0; overflow: hidden; }
+.code-wrap pre, .code-wrap textarea {
+  margin: 0; padding: 10px 12px; border: 0; font: 13px/var(--lh) var(--f-mono); tab-size: 4;
+  white-space: pre; letter-spacing: 0; font-variant-ligatures: none;
+}
+.code-wrap pre {
+  position: absolute; top: 0; left: 0; min-width: 100%; min-height: 100%; pointer-events: none; color: var(--ink);
+  width: max-content; will-change: transform;
+}
+.code-wrap pre .bands { position: absolute; inset: 0 auto 0 12px; width: 80ch; pointer-events: none; }
+.fixed .code-wrap pre .bands {
+  background:
+    linear-gradient(to right, var(--band) 0 6ch, var(--band-2) 6ch 7ch, transparent 7ch),
+    linear-gradient(to right, transparent calc(7ch - 1px), var(--rule) calc(7ch - 1px) 7ch, transparent 7ch),
+    linear-gradient(to right, transparent calc(11ch - 1px), var(--rule) calc(11ch - 1px) 11ch, transparent 11ch),
+    linear-gradient(to right, transparent 72ch, var(--margin) 72ch calc(72ch + 1px), transparent calc(72ch + 1px)),
+    linear-gradient(to right, transparent calc(72ch + 1px), var(--band) calc(72ch + 1px));
+  opacity: .9;
+}
+.code-wrap pre .txt { position: relative; }
+.code-wrap textarea {
+  position: absolute; inset: 0; width: 100%; height: 100%; resize: none; outline: none; overflow: auto;
+  background: transparent; color: transparent; caret-color: var(--ink); -webkit-text-fill-color: transparent;
+}
+.code-wrap textarea::selection { background: color-mix(in srgb, var(--accent) 28%, transparent); -webkit-text-fill-color: transparent; }
+.code-wrap.drop::after { content: "Drop a .cbl file to open it"; position: absolute; inset: 10px; border: 2px dashed var(--accent); border-radius: 8px; display: grid; place-items: center; background: color-mix(in srgb, var(--panel) 85%, transparent); font: 600 15px var(--f-cond); color: var(--accent); }
+.tk-kw { color: var(--kw); font-weight: 500; }
+.tk-div { color: var(--div); font-weight: 600; }
+.tk-str { color: var(--str); }
+.tk-num { color: var(--num); }
+.tk-com { color: var(--com); font-style: italic; }
+.tk-para { color: var(--para); font-weight: 600; }
+.tk-seq { color: var(--ink-2); opacity: .7; }
+.tk-pic { color: var(--num); }
+.tk-err { text-decoration: wavy underline var(--bad); text-decoration-skip-ink: none; }
+
+/* ---------- SYSOUT ---------- */
+.sysout { display: flex; flex-direction: column; min-height: 0; border-top: 1px solid var(--rule); background: var(--sysout); }
+.sysout header { display: flex; align-items: center; gap: 10px; padding: 6px 10px 6px 14px; border-bottom: 1px solid var(--rule); background: var(--paper); flex-wrap: wrap; }
+.sysout header .lbl { font: 600 12px/1 var(--f-mono); letter-spacing: .12em; }
+.runstate { font-size: 13px; color: var(--ink-2); margin-right: auto; display: flex; align-items: center; gap: 6px; }
+.runstate .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--rule); }
+.runstate.running .dot { background: var(--accent); animation: pulse 1s infinite; }
+.runstate.ok .dot { background: var(--ok); }
+.runstate.bad .dot { background: var(--bad); }
+@keyframes pulse { 50% { opacity: .3; } }
+@media (prefers-reduced-motion: reduce) { .runstate.running .dot { animation: none; } }
+.out {
+  flex: 1; overflow: auto; padding: 0 0 12px; font: 13px/var(--lh) var(--f-mono);
+  background-image: repeating-linear-gradient(to bottom, transparent 0 calc(var(--lh) * 3), var(--bar) calc(var(--lh) * 3) calc(var(--lh) * 6));
+  background-attachment: local;
+}
+.out .ln { white-space: pre; padding: 0 14px; min-height: var(--lh); }
+.out .ln.sys { color: var(--ink-2); font-style: italic; white-space: pre-wrap; }
+.out .ln.err { color: var(--bad); white-space: pre-wrap; font-weight: 500; }
+.out .ln.in { color: var(--accent); }
+.out .ln.in::before { content: "> "; opacity: .6; }
+.out .ln.ask { display: flex; align-items: center; gap: 6px; color: var(--accent); }
+.out .ln.ask input { flex: 1; min-width: 0; border: 0; border-bottom: 1px solid var(--accent); background: transparent; font: 13px/var(--lh) var(--f-mono); padding: 0; outline: none; color: var(--ink); }
+.out .placeholder { padding: 10px 14px; color: var(--ink-2); font: 13px/1.5 var(--f-sans); white-space: normal; }
+
+.toast {
+  position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
+  background: var(--ink); color: var(--paper); padding: 9px 14px; border-radius: 6px; font-size: 14px; box-shadow: var(--shadow);
+  opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 20; max-width: calc(100% - 32px);
+}
+.toast.show { opacity: 1; }
+
+/* ---------- narrow screens ---------- */
+@media (max-width: 900px) {
+  html, body { height: auto; }
+  .main { grid-template-columns: minmax(0, 1fr); }
+  .rail { border-right: 0; border-bottom: 1px solid var(--rule); max-height: 60vh; }
+  .work { grid-template-rows: auto 56vh minmax(260px, auto); }
+  .brand small { display: none; }
+  .sep { display: none; }
+  .btn .lbl-long { display: none; }
+}
+</style>
+</head>
+<body>
+<header class="appbar">
+  <div class="brand"><h1>COBOL <span>Workbench</span></h1><small>IDENTIFICATION · DATA · PROCEDURE</small></div>
+  <div class="toolbar">
+    <button class="btn primary" id="btnRun" title="Run (Ctrl+Enter)"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M4 2.5v11l9-5.5z"/></svg>Run</button>
+    <button class="btn" id="btnStop" disabled title="Stop the running program"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><rect x="3.5" y="3.5" width="9" height="9" rx="1"/></svg>Stop</button>
+    <span class="sep"></span>
+    <button class="btn ghost" id="btnNew" title="Start a new program"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>New</button>
+    <button class="btn ghost" id="btnOpen" title="Open a .cbl file from your computer"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M2 4.5h4l1.5 1.5H14v6.5H2z"/></svg>Open<span class="lbl-long">&nbsp;.cbl</span></button>
+    <button class="btn ghost" id="btnSave" title="Save as a .cbl file (Ctrl+S)"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M8 2.5v8M4.5 7 8 10.5 11.5 7M3 13.5h10"/></svg>Save<span class="lbl-long">&nbsp;.cbl</span></button>
+    <input type="file" id="fileInput" accept=".cbl,.cob,.cpy,.cbx,.txt" hidden>
+    <button class="btn ghost" id="btnTheme" title="Switch light or dark theme" aria-label="Switch theme"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="8" cy="8" r="5.5"/><path d="M8 2.5a5.5 5.5 0 0 1 0 11z" fill="currentColor"/></svg><span id="themeLbl">Auto</span></button>
+  </div>
+</header>
+
+<div class="main">
+  <aside class="rail">
+    <div class="tabs" role="tablist">
+      <button role="tab" id="tabLessons" aria-selected="true" aria-controls="paneLessons">Lessons</button>
+      <button role="tab" id="tabFiles" aria-selected="false" aria-controls="paneFiles">My programs</button>
+      <button role="tab" id="tabRef" aria-selected="false" aria-controls="paneRef">Reference</button>
+    </div>
+    <section class="pane" id="paneLessons" role="tabpanel" aria-labelledby="tabLessons"></section>
+    <section class="pane" id="paneFiles" role="tabpanel" aria-labelledby="tabFiles" hidden></section>
+    <section class="pane" id="paneRef" role="tabpanel" aria-labelledby="tabRef" hidden>
+      <h2>Quick reference</h2>
+      <h3>Fixed-format columns</h3>
+      <div class="colmap" aria-label="Column layout">
+        <div class="s"><b>1–6</b>Seq</div>
+        <div class="s"><b>7</b>*</div>
+        <div class="a"><b>8</b>A</div>
+        <div class="a"><b>12–72</b>Area B · statements</div>
+        <div class="x"><b>73+</b>Ignored</div>
+      </div>
+      <p>Division, section and paragraph names start in Area A (column 8). Statements go in Area B (column 12 onward). Switch to <b>Free</b> format in the editor bar to type anywhere; free-format comments start with <code>*&gt;</code>.</p>
+      <h3>PIC symbols</h3>
+      <table class="mini"><tbody>
+        <tr><td><code>X</code></td><td>any character</td></tr>
+        <tr><td><code>A</code></td><td>letter or space</td></tr>
+        <tr><td><code>9</code></td><td>digit</td></tr>
+        <tr><td><code>V</code></td><td>implied decimal point (not printed)</td></tr>
+        <tr><td><code>S</code></td><td>number can be negative</td></tr>
+        <tr><td><code>(n)</code></td><td>repeat: <code>X(5)</code> is <code>XXXXX</code></td></tr>
+        <tr><td><code>Z , .</code></td><td>zero suppression, comma, printed decimal</td></tr>
+        <tr><td><code>$ * - + CR DB</code></td><td>currency, cheque stars, signs</td></tr>
+      </tbody></table>
+      <h3>Statements</h3>
+      <table class="mini"><tbody>
+        <tr><td><code>DISPLAY</code></td><td>print values; add <code>NO ADVANCING</code> to stay on the line</td></tr>
+        <tr><td><code>ACCEPT</code></td><td>read typed input, or <code>FROM DATE</code> / <code>TIME</code></td></tr>
+        <tr><td><code>MOVE</code></td><td>copy a value, fitted to the receiving PIC</td></tr>
+        <tr><td><code>ADD SUBTRACT MULTIPLY DIVIDE</code></td><td>with <code>GIVING</code>, <code>ROUNDED</code>, <code>REMAINDER</code>, <code>ON SIZE ERROR</code></td></tr>
+        <tr><td><code>COMPUTE</code></td><td>formulas with <code>+ - * / **</code></td></tr>
+        <tr><td><code>IF / EVALUATE</code></td><td>decisions; close with <code>END-IF</code> / <code>END-EVALUATE</code></td></tr>
+        <tr><td><code>PERFORM</code></td><td>paragraphs, <code>TIMES</code>, <code>UNTIL</code>, <code>VARYING</code>, inline with <code>END-PERFORM</code></td></tr>
+        <tr><td><code>SET</code></td><td><code>SET name TO TRUE</code> for 88 levels; <code>UP BY</code> / <code>DOWN BY</code></td></tr>
+        <tr><td><code>STRING UNSTRING</code></td><td>join and split text</td></tr>
+        <tr><td><code>INSPECT</code></td><td><code>TALLYING</code>, <code>REPLACING</code>, <code>CONVERTING</code></td></tr>
+        <tr><td><code>INITIALIZE</code></td><td>reset to spaces and zeros</td></tr>
+        <tr><td><code>GO TO / EXIT</code></td><td>jump to a paragraph; <code>EXIT PARAGRAPH</code>, <code>EXIT PERFORM</code></td></tr>
+        <tr><td><code>STOP RUN</code></td><td>end the program (<code>GOBACK</code> also works)</td></tr>
+      </tbody></table>
+      <h3>Functions</h3>
+      <p><code>UPPER-CASE LOWER-CASE TRIM REVERSE LENGTH CONCATENATE NUMVAL SQRT ABS MOD REM INTEGER MAX MIN SUM MEAN MEDIAN RANDOM PI EXP LOG FACTORIAL CURRENT-DATE INTEGER-OF-DATE DATE-OF-INTEGER ORD CHAR</code></p>
+      <h3>Not supported here</h3>
+      <p>This workbench runs a teaching subset of COBOL in your browser. Files (<code>FD</code>, <code>OPEN</code>, <code>READ</code>, <code>WRITE</code>), <code>REDEFINES</code>, <code>COPY</code>, <code>CALL</code>, <code>SORT</code>, <code>SEARCH</code> and tables inside tables aren't available. Saved .cbl files are standard source, so they also compile with GnuCOBOL: <code>cobc -x HELLO.cbl</code>.</p>
+    </section>
+  </aside>
+
+  <main class="work" id="work">
+    <div class="docbar">
+      <div class="docname" id="docname"></div>
+      <span class="saved" id="savedNote"></span>
+      <div class="seg" role="group" aria-label="Source format">
+        <button id="fmtFixed" aria-pressed="true" title="Fixed format: columns 8–72, the classic layout">FIXED</button>
+        <button id="fmtFree" aria-pressed="false" title="Free format: type code in any column">FREE</button>
+      </div>
+      <span class="status" id="status">Ln 1, Col 1</span>
+    </div>
+    <div class="editor" id="editor">
+      <div class="ruler" aria-hidden="true"><div class="gutter-pad">COL</div><div class="ruler-clip"><div class="ruler-inner" id="ruler"></div></div></div>
+      <div class="ed-body">
+        <div class="gutter" aria-hidden="true"><div class="gutter-inner" id="gutter"></div></div>
+        <div class="code-wrap" id="codeWrap">
+          <pre id="hl" aria-hidden="true"><div class="bands"></div><div class="txt" id="hlTxt"></div></pre>
+          <textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" aria-label="COBOL source code"></textarea>
+        </div>
+      </div>
+    </div>
+    <section class="sysout" aria-label="Program output">
+      <header>
+        <span class="lbl">SYSOUT</span>
+        <span class="runstate" id="runstate"><span class="dot"></span><span id="runtext">Ready</span></span>
+        <button class="btn ghost" id="btnClear" style="height:28px">Clear</button>
+      </header>
+      <div class="out" id="out" role="log" aria-live="polite"><div class="placeholder">Output from DISPLAY appears here, one line per DISPLAY, on green-bar paper like an old line printer. Press Run or Ctrl+Enter.</div></div>
+    </section>
+  </main>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(function (G) {
+"use strict";
+
+/* ===================== Errors & control signals ===================== */
+class CobolError extends Error { constructor(m, l) { super(m); this.line = l || 0; } }
+function E(line, msg) { return new CobolError(line ? `Line ${line}: ${msg}` : msg, line); }
+class StopRun {}
+class Halt {}
+class ExitPara {}
+class ExitPerform { constructor(c) { this.cycle = c; } }
+class GoTo { constructor(i) { this.idx = i; } }
+class DivZero { constructor(l) { this.line = l; } }
+
+/* ===================== Vocabulary ===================== */
+const FIG = {
+  SPACE: ' ', SPACES: ' ', ZERO: '0', ZEROS: '0', ZEROES: '0',
+  'HIGH-VALUE': 'ÿ', 'HIGH-VALUES': 'ÿ', 'LOW-VALUE': '\u0000', 'LOW-VALUES': '\u0000',
+  QUOTE: '"', QUOTES: '"', NULL: '\u0000', NULLS: '\u0000'
+};
+const VERBS = new Set('ACCEPT ADD COMPUTE CONTINUE DISPLAY DIVIDE EVALUATE EXIT GO GOBACK IF INITIALIZE INSPECT MOVE MULTIPLY NEXT PERFORM SET STOP STRING SUBTRACT UNSTRING'.split(' '));
+const ENDERS = new Set('ELSE WHEN END-IF END-EVALUATE END-PERFORM END-ADD END-SUBTRACT END-MULTIPLY END-DIVIDE END-COMPUTE END-STRING END-UNSTRING END-DISPLAY END-ACCEPT END-INSPECT END-SET'.split(' '));
+const UNSUP = {
+  OPEN: 'File handling (OPEN, READ, WRITE, CLOSE)', CLOSE: 'File handling (OPEN, READ, WRITE, CLOSE)',
+  READ: 'File handling (OPEN, READ, WRITE, CLOSE)', WRITE: 'File handling (OPEN, READ, WRITE, CLOSE)',
+  REWRITE: 'File handling', DELETE: 'File handling', START: 'File handling',
+  CALL: 'CALL (running another program)', SORT: 'SORT', MERGE: 'MERGE', SEARCH: 'SEARCH (table lookup)',
+  ALTER: 'ALTER', CANCEL: 'CANCEL', RELEASE: 'RELEASE', RETURN: 'RETURN', COPY: 'COPY (copybooks)',
+  REPLACE: 'REPLACE', ENTRY: 'ENTRY'
+};
+const DATA_CLAUSES = new Set('PIC PICTURE VALUE VALUES OCCURS REDEFINES USAGE COMP COMP-1 COMP-2 COMP-3 COMP-4 COMP-5 COMPUTATIONAL COMPUTATIONAL-3 BINARY PACKED-DECIMAL DISPLAY SIGN JUST JUSTIFIED BLANK SYNC SYNCHRONIZED INDEXED EXTERNAL GLOBAL IS'.split(' '));
+const CLASS_WORDS = new Set(['NUMERIC', 'ALPHABETIC', 'ALPHABETIC-UPPER', 'ALPHABETIC-LOWER', 'POSITIVE', 'NEGATIVE', 'ZERO']);
+const RESERVED = new Set([...VERBS, ...ENDERS, ...'TO FROM BY INTO GIVING ROUNDED REMAINDER UNTIL VARYING TIMES THRU THROUGH THEN AND OR NOT DELIMITED POINTER TALLYING REPLACING CONVERTING FOR UPON WITH NO ADVANCING OTHER ALSO IS OF IN ON SIZE ERROR OVERFLOW AFTER BEFORE INITIAL LEADING FIRST CHARACTERS TRAILING TRUE FALSE UP DOWN RUN EQUAL EQUALS GREATER LESS THAN DELIMITER COUNT'.split(' ')]);
+
+const desc = t => t.t === 'eof' ? 'the end of the program' : t.t === 'period' ? 'a period (.)' : `"${t.v}"`;
+
+/* ===================== Tokenizer ===================== */
+function tokenize(src, fixedIn) {
+  let fixed = fixedIn;
+  const toks = [];
+  const lines = src.replace(/\r\n?/g, '\n').split('\n');
+  let picNext = false;
+  for (let ln = 0; ln < lines.length; ln++) {
+    let s = lines[ln].replace(/\t/g, '    ');
+    const L = ln + 1;
+    const tr = s.trim();
+    if (tr.startsWith('>>')) {
+      if (/SOURCE\s+(FORMAT\s+)?(IS\s+)?FREE/i.test(tr)) fixed = false;
+      else if (/SOURCE\s+(FORMAT\s+)?(IS\s+)?FIXED/i.test(tr)) fixed = true;
+      continue;
+    }
+    if (fixed) {
+      if (tr === '') continue;
+      if (s.length < 7) continue;
+      const ind = s[6];
+      if (ind === '*' || ind === '/') continue;
+      if ((ind === 'D' || ind === 'd') && (s[7] === ' ' || s.length === 7)) continue;
+      if (ind === '-') throw E(L, `continuation lines (a - in column 7) aren't supported here. Put the whole text on one line, or join pieces with STRING.`);
+      if (ind !== ' ') throw E(L, `in fixed format, code starts in column 8. Column 7 is only for a * comment marker, and this line has "${ind}" there. Indent the line (Tab jumps to column 8), or switch the editor to Free format.`);
+      if (s.length > 72 && s.slice(72).trim()) throw E(L, `this line runs past column 72. In fixed format COBOL ignores columns 73–80, so anything there is lost. Break the line in two.`);
+      s = s.slice(7, 72);
+    } else {
+      if (tr.startsWith('*>')) continue;
+    }
+    let i = 0;
+    while (i < s.length) {
+      const c = s[i];
+      if (c === ' ' || c === ',' || c === ';') { i++; continue; }
+      if (c === '*' && s[i + 1] === '>') break;
+      if (picNext) {
+        let j = i; while (j < s.length && s[j] !== ' ') j++;
+        let p = s.slice(i, j), per = false;
+        if (/^IS$/i.test(p)) { toks.push({ t: 'word', v: p, u: 'IS', line: L }); i = j; continue; }
+        if (p.endsWith('.')) { p = p.slice(0, -1); per = true; }
+        toks.push({ t: 'pic', v: p, u: p.toUpperCase(), line: L });
+        if (per) toks.push({ t: 'period', v: '.', u: '.', line: L });
+        picNext = false; i = j; continue;
+      }
+      if (c === '"' || c === "'") {
+        let j = i + 1, v = '', closed = false;
+        while (j < s.length) {
+          if (s[j] === c) { if (s[j + 1] === c) { v += c; j += 2; continue; } closed = true; break; }
+          v += s[j++];
+        }
+        if (!closed) throw E(L, `this text is missing its closing quote (${c}).${fixed ? ' In fixed format, text after column 72 is cut off, so a long line can lose its closing quote.' : ''}`);
+        toks.push({ t: 'str', v, u: v, line: L }); i = j + 1; continue;
+      }
+      if ((c === '+' || c === '-') && /\d/.test(s[i + 1] || '') && (i === 0 || s[i - 1] === ' ' || s[i - 1] === '(')) {
+        const m = /^[+-]\d+(\.\d+)?/.exec(s.slice(i))[0];
+        toks.push({ t: 'num', v: m, u: m, line: L }); i += m.length; continue;
+      }
+      if (/[A-Za-z0-9]/.test(c)) {
+        let m = /^[A-Za-z0-9][A-Za-z0-9_-]*/.exec(s.slice(i))[0];
+        while (m.endsWith('-')) m = m.slice(0, -1);
+        if (/^\d+$/.test(m)) {
+          const d = /^\d+\.\d+/.exec(s.slice(i));
+          if (d) m = d[0];
+          toks.push({ t: 'num', v: m, u: m, line: L }); i += m.length; continue;
+        }
+        const u = m.toUpperCase();
+        toks.push({ t: 'word', v: m, u, line: L }); i += m.length;
+        if (u === 'PIC' || u === 'PICTURE') picNext = true;
+        continue;
+      }
+      const two = s.substr(i, 2);
+      if (two === '**' || two === '>=' || two === '<=' || two === '<>') { toks.push({ t: 'op', v: two, u: two, line: L }); i += 2; continue; }
+      if ('+-*/=><'.includes(c)) { toks.push({ t: 'op', v: c, u: c, line: L }); i++; continue; }
+      if (c === '(') { toks.push({ t: 'lp', v: c, u: c, line: L }); i++; continue; }
+      if (c === ')') { toks.push({ t: 'rp', v: c, u: c, line: L }); i++; continue; }
+      if (c === ':') { toks.push({ t: 'colon', v: c, u: c, line: L }); i++; continue; }
+      if (c === '.') { toks.push({ t: 'period', v: '.', u: '.', line: L }); i++; continue; }
+      throw E(L, `I don't recognise the character "${c}" here.`);
+    }
+  }
+  return toks;
+}
+
+/* ===================== PICTURE handling ===================== */
+function parsePic(p, line) {
+  const s = p.toUpperCase().replace(/(.)\((\d+)\)/g, (m, c, n) => c.repeat(+n));
+  const bad = () => E(line, `I don't understand the picture "${p}". Try something like X(10), 9(5), 9(4)V99 or ZZ,ZZ9.99.`);
+  if (!s || /[^AX9SVPZ,.$+\-*B0\/CRDB]/.test(s)) throw bad();
+  if (/^[AX]+$/.test(s)) return { kind: 'X', len: s.length };
+  if (/^S?9*V?9*$/.test(s) && s.includes('9')) {
+    const signed = s[0] === 'S';
+    const [a, b = ''] = s.replace('S', '').split('V');
+    if (a.length + b.length > 18) throw E(line, `numbers in COBOL can have at most 18 digits ("${p}" has ${a.length + b.length}).`);
+    return { kind: '9', signed, digits: a.length, scale: b.length, len: a.length + b.length };
+  }
+  if (/X|A/.test(s)) {
+    if (/^[AX9B0\/]+$/.test(s)) return { kind: 'X', len: s.length };
+    throw bad();
+  }
+  const syms = [];
+  for (let i = 0; i < s.length; i++) {
+    if (s.startsWith('CR', i) || s.startsWith('DB', i)) { syms.push(s.substr(i, 2)); i++; }
+    else syms.push(s[i]);
+  }
+  if (syms.some(x => x === 'S' || x === 'C' || x === 'R' || x === 'D' || x === 'P')) throw bad();
+  const len = syms.filter(x => x !== 'V').reduce((a, x) => a + x.length, 0);
+  const vpos = syms.findIndex(x => x === '.' || x === 'V');
+  const intEnd = vpos < 0 ? syms.length : vpos;
+  let floatCh = null, floatFirst = -1;
+  for (const ch of ['$', '+', '-']) {
+    const idx = []; syms.forEach((x, i) => { if (x === ch && i < intEnd) idx.push(i); });
+    if (idx.length > 1) { floatCh = ch; floatFirst = idx[0]; break; }
+  }
+  const it = { kind: 'E', syms, len, intEnd, floatCh, floatFirst, star: syms.includes('*'), signed: true };
+  let ip = 0, fp = 0;
+  syms.forEach((x, i) => { if (isDigPos(it, x, i)) { if (i < intEnd) ip++; else fp++; } });
+  it.digits = ip; it.scale = fp; it.has9 = syms.includes('9');
+  return it;
+}
+function isDigPos(it, x, i) {
+  return x === '9' || x === 'Z' || x === '*' || (it.floatCh && x === it.floatCh && i > it.floatFirst && i < it.intEnd) || (it.floatCh && x === it.floatCh && i > it.intEnd);
+}
+function formatEdited(it, n) {
+  const neg = n < 0;
+  const a = Math.abs(n);
+  if (a === 0 && !it.has9) {
+    return it.star ? it.syms.map(x => x === '.' ? '.' : x === 'V' ? '' : '*'.repeat(x.length)).join('') : ' '.repeat(it.len);
+  }
+  let [ip, fp = ''] = a.toFixed(it.scale).split('.');
+  ip = it.digits ? ip.padStart(it.digits, '0').slice(-it.digits) : '';
+  let di = 0, fi = 0, sig = false, supIdx = -1, headIdx = -1;
+  const out = [];
+  const sup = () => { supIdx = out.length; out.push(it.star ? '*' : ' '); };
+  it.syms.forEach((x, i) => {
+    if (i < it.intEnd) {
+      if (isDigPos(it, x, i)) {
+        const d = ip[di++];
+        if (!sig && (d !== '0' || x === '9')) sig = true;
+        if (sig) out.push(d); else sup();
+      } else if (it.floatCh && x === it.floatCh && i === it.floatFirst) { headIdx = out.length; out.push(' '); }
+      else if (x === ',' || x === 'B' || x === '0' || x === '/') { if (sig) out.push(x === 'B' ? ' ' : x); else sup(); }
+      else if (x === '$') out.push('$');
+      else if (x === '+') out.push(neg ? '-' : '+');
+      else if (x === '-') out.push(neg ? '-' : ' ');
+      else if (x === 'V') { /* implied */ }
+      else out.push(x);
+    } else {
+      if (x === '.') out.push('.');
+      else if (x === 'V') { }
+      else if (isDigPos(it, x, i)) out.push(fp[fi++] || '0');
+      else if (x === '+') out.push(neg ? '-' : '+');
+      else if (x === '-') out.push(neg ? '-' : ' ');
+      else if (x === 'CR' || x === 'DB') out.push(neg ? x : '  ');
+      else if (x === 'B') out.push(' ');
+      else out.push(x);
+    }
+  });
+  if (it.floatCh) {
+    const sym = it.floatCh === '$' ? '$' : it.floatCh === '+' ? (neg ? '-' : '+') : (neg ? '-' : ' ');
+    const at = supIdx >= 0 ? supIdx : headIdx;
+    if (at >= 0) out[at] = sym;
+  }
+  return out.join('');
+}
+function deEdit(s) {
+  const neg = /-|CR|DB/.test(s);
+  const t = s.replace(/[^0-9.]/g, '');
+  const n = t === '' || t === '.' ? 0 : Number(t);
+  return neg ? -n : n;
+}
+function fmtNum(n) {
+  if (Number.isInteger(n)) return String(n);
+  return String(+n.toFixed(9));
+}
+
+/* ===================== Parser ===================== */
+class Parser {
+  constructor(toks, ctx) { this.toks = toks; this.pos = 0; this.ctx = ctx; this.eofLine = toks.length ? toks[toks.length - 1].line : 1; }
+  peek(k = 0) { return this.toks[this.pos + k] || { t: 'eof', v: '', u: '', line: this.eofLine }; }
+  next() { const t = this.peek(); this.pos++; return t; }
+  is(u, k = 0) { const t = this.peek(k); return t.t === 'word' && t.u === u; }
+  isOp(v, k = 0) { const t = this.peek(k); return t.t === 'op' && t.v === v; }
+  accept(...us) { const t = this.peek(); if (t.t === 'word' && us.includes(t.u)) { this.pos++; return t; } return null; }
+  expect(u, what) {
+    const t = this.peek();
+    if (t.t === 'word' && t.u === u) { this.pos++; return t; }
+    throw E(t.line, `expected ${what || u} but found ${desc(t)}.`);
+  }
+  isStmtEnd(t = this.peek()) {
+    if (t.t === 'word' && t.u === 'NOT' && t === this.peek()) {
+      const n = this.peek(1);
+      if (n.t === 'word' && ['ON', 'SIZE', 'OVERFLOW'].includes(n.u)) return true;
+    }
+    return t.t === 'period' || t.t === 'eof' || (t.t === 'word' && (VERBS.has(t.u) || ENDERS.has(t.u) || UNSUP[t.u]));
+  }
+
+  /* ----- data ----- */
+  parseLit() {
+    const t = this.next();
+    if (t.t === 'num') return { num: Number(t.v), text: t.v.replace(/^\+/, '') };
+    if (t.t === 'str') return { str: t.v };
+    if (t.t === 'word') {
+      if (FIG[t.u] != null) return { fig: FIG[t.u] };
+      if (t.u === 'ALL') { const l = this.parseLit(); return { fig: l.str ?? l.fig ?? l.text }; }
+    }
+    throw E(t.line, `VALUE needs a number, a "quoted text" or a word like SPACES or ZERO, but found ${desc(t)}.`);
+  }
+
+  /* ----- references ----- */
+  colonAhead() {
+    let d = 0;
+    for (let k = this.pos; k < this.toks.length; k++) {
+      const t = this.toks[k];
+      if (t.t === 'lp') d++;
+      else if (t.t === 'rp') { d--; if (d === 0) return false; }
+      else if (t.t === 'colon' && d === 1) return true;
+      else if (t.t === 'period') return false;
+    }
+    return false;
+  }
+  parseRefMod(node) {
+    this.next();
+    const start = this.parseExpr();
+    if (this.peek().t !== 'colon') throw E(this.peek().line, `expected ":" in a reference like NAME(start:length).`);
+    this.next();
+    let len = null;
+    if (this.peek().t !== 'rp') len = this.parseExpr();
+    if (this.peek().t !== 'rp') throw E(this.peek().line, `expected ")" to close (start:length).`);
+    this.next();
+    node.rm = { start, len };
+  }
+  parseRef() {
+    const t = this.next();
+    if (t.t !== 'word') throw E(t.line, `expected a data item name but found ${desc(t)}.`);
+    if (RESERVED.has(t.u) || FIG[t.u] != null) throw E(t.line, `expected a data item name but found the keyword ${t.u}.`);
+    const node = { k: 'ref', name: t.u, quals: [], line: t.line, subs: null, rm: null };
+    while (this.is('OF') || this.is('IN')) { this.next(); node.quals.push(this.next().u); }
+    node.it = this.ctx.lookup(node);
+    if (this.peek().t === 'lp') {
+      if (this.colonAhead()) this.parseRefMod(node);
+      else if (node.it.owner) {
+        this.next();
+        const subs = [];
+        while (this.peek().t !== 'rp') {
+          if (this.peek().t === 'eof' || this.peek().t === 'period') throw E(t.line, `missing ")" after the subscript of ${t.v}.`);
+          subs.push(this.parseExpr());
+        }
+        this.next();
+        if (subs.length > 1) throw E(t.line, `${t.v} has ${subs.length} subscripts, but only one-dimensional tables are supported here.`);
+        node.subs = subs;
+        if (this.peek().t === 'lp' && this.colonAhead()) this.parseRefMod(node);
+      }
+    }
+    return node;
+  }
+  parseFunction() {
+    const ft = this.next(); // FUNCTION
+    const nt = this.next();
+    if (nt.t !== 'word') throw E(ft.line, `expected a function name after FUNCTION.`);
+    const node = { k: 'fn', name: nt.u, args: [], mode: null, line: nt.line, rm: null };
+    if (this.peek().t === 'lp' && !this.colonAhead()) {
+      this.next();
+      while (this.peek().t !== 'rp') {
+        if (this.peek().t === 'eof' || this.peek().t === 'period') throw E(nt.line, `missing ")" after the arguments of FUNCTION ${nt.v}.`);
+        if (this.is('LEADING') || this.is('TRAILING')) { node.mode = this.next().u; continue; }
+        node.args.push(this.parseExpr());
+      }
+      this.next();
+    }
+    if (this.peek().t === 'lp' && this.colonAhead()) this.parseRefMod(node);
+    return node;
+  }
+  parseOperand() {
+    const t = this.peek();
+    if (t.t === 'num') { this.next(); return { k: 'num', n: Number(t.v), text: t.v.replace(/^\+/, ''), line: t.line }; }
+    if (t.t === 'str') { this.next(); return { k: 'str', s: t.v, line: t.line }; }
+    if (t.t === 'word') {
+      if (FIG[t.u] != null) { this.next(); return { k: 'fig', ch: FIG[t.u], line: t.line }; }
+      if (t.u === 'ALL') {
+        this.next(); const l = this.next();
+        if (l.t === 'str') return { k: 'fig', ch: l.v, line: t.line };
+        if (l.t === 'word' && FIG[l.u] != null) return { k: 'fig', ch: FIG[l.u], line: t.line };
+        throw E(t.line, `ALL must be followed by "text" or a word like SPACES.`);
+      }
+      if (t.u === 'FUNCTION') return this.parseFunction();
+      return this.parseRef();
+    }
+    throw E(t.line, `expected a value (a number, "text" or a data item) but found ${desc(t)}.`);
+  }
+
+  /* ----- expressions ----- */
+  parseExpr() { return this.pAdd(); }
+  pAdd() {
+    let l = this.pMul();
+    for (;;) {
+      const t = this.peek();
+      if (t.t === 'op' && (t.v === '+' || t.v === '-')) { this.next(); l = { k: 'bin', op: t.v, l, r: this.pMul(), line: t.line }; }
+      else return l;
+    }
+  }
+  pMul() {
+    let l = this.pPow();
+    for (;;) {
+      const t = this.peek();
+      if (t.t === 'op' && (t.v === '*' || t.v === '/')) { this.next(); l = { k: 'bin', op: t.v, l, r: this.pPow(), line: t.line }; }
+      else return l;
+    }
+  }
+  pPow() {
+    const b = this.pUnary();
+    if (this.isOp('**')) { const t = this.next(); return { k: 'bin', op: '**', l: b, r: this.pPow(), line: t.line }; }
+    return b;
+  }
+  pUnary() {
+    if (this.isOp('-')) { const t = this.next(); return { k: 'neg', e: this.pUnary(), line: t.line }; }
+    if (this.isOp('+')) { this.next(); return this.pUnary(); }
+    return this.pPrim();
+  }
+  pPrim() {
+    const t = this.peek();
+    if (t.t === 'lp') {
+      this.next(); const e = this.parseExpr();
+      if (this.peek().t !== 'rp') throw E(t.line, `missing ")" in this expression.`);
+      this.next(); return e;
+    }
+    return this.parseOperand();
+  }
+
+  /* ----- conditions ----- */
+  parseCond() { return this.cOr({}); }
+  cOr(ctx) { let l = this.cAnd(ctx); while (this.is('OR')) { this.next(); l = { k: 'or', l, r: this.cAnd(ctx) }; } return l; }
+  cAnd(ctx) { let l = this.cNot(ctx); while (this.is('AND')) { this.next(); l = { k: 'and', l, r: this.cNot(ctx) }; } return l; }
+  cNot(ctx) {
+    if (this.is('NOT') && !this.relopAt(0)) { this.next(); return { k: 'not', e: this.cNot(ctx) }; }
+    return this.cPrim(ctx);
+  }
+  relopAt(k0) {
+    let k = k0;
+    if (this.is('IS', k)) k++;
+    if (this.is('NOT', k)) k++;
+    const t = this.peek(k);
+    if (t.t === 'op' && ['=', '>', '<', '>=', '<=', '<>'].includes(t.v)) return true;
+    return t.t === 'word' && ['EQUAL', 'EQUALS', 'GREATER', 'LESS'].includes(t.u);
+  }
+  parseRelop() {
+    this.accept('IS');
+    const neg = !!this.accept('NOT');
+    const t = this.next();
+    let op;
+    if (t.t === 'op') op = t.v;
+    else if (t.u === 'EQUAL' || t.u === 'EQUALS') { this.accept('TO'); op = '='; }
+    else if (t.u === 'GREATER' || t.u === 'LESS') {
+      this.accept('THAN');
+      op = t.u === 'GREATER' ? '>' : '<';
+      if (this.is('OR') && this.is('EQUAL', 1)) { this.next(); this.next(); this.accept('TO'); op += '='; }
+    } else throw E(t.line, `expected a comparison (=, >, <, >=, <=) but found ${desc(t)}.`);
+    if (neg) op = { '=': '<>', '>': '<=', '<': '>=', '>=': '<', '<=': '>', '<>': '=' }[op];
+    return op;
+  }
+  cPrim(ctx) {
+    const t = this.peek();
+    if (this.relopAt(0)) {
+      if (!ctx.lastL) throw E(t.line, `this comparison is missing the value on its left.`);
+      const op = this.parseRelop(); const r = this.parseExpr();
+      ctx.lastOp = op;
+      return { k: 'cmp', l: ctx.lastL, op, r, line: t.line };
+    }
+    if (t.t === 'lp') {
+      const save = this.pos;
+      try {
+        this.next();
+        const c = this.cOr({});
+        if (this.peek().t === 'rp') {
+          this.next();
+          const nt = this.peek();
+          if (!this.relopAt(0) && !(nt.t === 'op')) return c;
+        }
+      } catch (e) { /* not a parenthesised condition */ }
+      this.pos = save;
+    }
+    const l = this.parseExpr();
+    if (l.k === 'ref' && l.it.kind === 'C' && !this.relopAt(0)) return { k: 'cname', ref: l, line: t.line };
+    {
+      const save = this.pos;
+      this.accept('IS');
+      const neg = !!this.accept('NOT');
+      const cw = this.peek();
+      if (cw.t === 'word' && CLASS_WORDS.has(cw.u)) { this.next(); return { k: 'class', e: l, cls: cw.u, neg, line: t.line }; }
+      this.pos = save;
+    }
+    if (this.relopAt(0)) {
+      const op = this.parseRelop(); const r = this.parseExpr();
+      ctx.lastL = l; ctx.lastOp = op;
+      return { k: 'cmp', l, op, r, line: t.line };
+    }
+    if (ctx.lastL) return { k: 'cmp', l: ctx.lastL, op: ctx.lastOp, r: l, line: t.line };
+    throw E(t.line, `this condition is incomplete. After ${desc(t)} I expected a comparison such as =, > or <.`);
+  }
+
+  /* ----- statements ----- */
+  parseStatements(stops) {
+    const out = [];
+    for (;;) {
+      const t = this.peek();
+      if (t.t === 'period' || t.t === 'eof') break;
+      if (t.t === 'word' && stops.includes(t.u)) break;
+      if (t.t === 'word' && UNSUP[t.u]) throw E(t.line, `${UNSUP[t.u]} isn't supported in this workbench yet.`);
+      if (t.t === 'word' && VERBS.has(t.u)) { out.push(this.parseStatement()); continue; }
+      if (t.t === 'word' && ENDERS.has(t.u)) {
+        const opener = { ELSE: 'IF', WHEN: 'EVALUATE' }[t.u] || t.u.replace('END-', '');
+        throw E(t.line, `found ${t.u} without a matching ${opener}. Check for a period (.) that ended the ${opener} too early.`);
+      }
+      throw E(t.line, `expected a COBOL verb (like DISPLAY, MOVE or PERFORM) but found ${desc(t)}. If this is a paragraph name, put a period after it on its own line.`);
+    }
+    return out;
+  }
+  parseClauseBlock(words, endWord) {
+    // ON SIZE ERROR / NOT ON SIZE ERROR / ON OVERFLOW ...
+    const res = {};
+    const head = words[0];
+    for (;;) {
+      if (this.is('ON') && this.is(head, 1) || this.is(head)) {
+        this.accept('ON'); words.forEach(w => this.expect(w));
+        res.on = this.parseStatements(['NOT', endWord]);
+      } else if (this.is('NOT') && (this.is('ON', 1) && this.is(head, 2) || this.is(head, 1))) {
+        this.next(); this.accept('ON'); words.forEach(w => this.expect(w));
+        res.notOn = this.parseStatements([endWord]);
+      } else break;
+    }
+    this.accept(endWord);
+    return res.on || res.notOn ? res : null;
+  }
+  parseTargets(extraStops = []) {
+    const list = [];
+    for (;;) {
+      const t = this.peek();
+      if (this.isStmtEnd(t) || (t.t === 'word' && (extraStops.includes(t.u)))) break;
+      if (t.t !== 'word') break;
+      const r = this.parseRef();
+      const rounded = !!this.accept('ROUNDED');
+      list.push({ ref: r, rounded });
+    }
+    return list;
+  }
+  parseSources(stops) {
+    const list = [];
+    for (;;) {
+      const t = this.peek();
+      if (this.isStmtEnd(t) || (t.t === 'word' && stops.includes(t.u))) break;
+      list.push(this.parseOperand());
+    }
+    return list;
+  }
+  parseStatement() {
+    const t = this.next();
+    const line = t.line;
+    switch (t.u) {
+      case 'DISPLAY': {
+        const items = []; let noAdv = false;
+        for (;;) {
+          const p = this.peek();
+          if (this.isStmtEnd(p)) break;
+          if (p.t === 'word' && p.u === 'UPON') { this.next(); this.next(); continue; }
+          if (p.t === 'word' && p.u === 'WITH' && this.is('NO', 1)) { this.next(); continue; }
+          if (p.t === 'word' && p.u === 'NO') { this.next(); this.expect('ADVANCING'); noAdv = true; continue; }
+          items.push(this.parseOperand());
+        }
+        this.accept('END-DISPLAY');
+        if (!items.length) throw E(line, `DISPLAY needs something to show, like DISPLAY "Hello".`);
+        return { k: 'DISPLAY', items, noAdv, line };
+      }
+      case 'ACCEPT': {
+        const ref = this.parseRef(); let from = null;
+        if (this.accept('FROM')) {
+          from = this.next().u;
+          if (from === 'DATE' && this.accept('YYYYMMDD')) from = 'DATE8';
+          else if (from === 'DAY' && this.accept('YYYYDDD')) from = 'DAY7';
+        }
+        this.accept('END-ACCEPT');
+        return { k: 'ACCEPT', ref, from, line };
+      }
+      case 'MOVE': {
+        if (this.is('CORRESPONDING') || this.is('CORR')) throw E(line, `MOVE CORRESPONDING isn't supported here. Move each field on its own.`);
+        const src = this.parseOperand();
+        this.expect('TO', 'TO (as in MOVE value TO name)');
+        const targets = this.parseTargets().map(x => x.ref);
+        if (!targets.length) throw E(line, `MOVE needs at least one data item after TO.`);
+        return { k: 'MOVE', src, targets, line };
+      }
+      case 'ADD': {
+        const srcs = this.parseSources(['TO', 'GIVING']);
+        let to = [], giving = [];
+        if (this.accept('TO')) {
+          if (this.peek().t === 'word' && !this.is('GIVING')) {
+            // ADD a TO b GIVING c  -> b is an operand, not a target
+            const save = this.pos;
+            to = this.parseTargets(['GIVING', 'ON', 'NOT', 'SIZE']);
+            if (this.is('GIVING')) { this.pos = save; srcs.push(...this.parseSources(['GIVING'])); to = []; }
+          } else srcs.push(...this.parseSources(['GIVING']));
+        }
+        if (this.accept('GIVING')) giving = this.parseTargets(['ON', 'NOT', 'SIZE']);
+        if (!to.length && !giving.length) throw E(line, `ADD needs TO or GIVING, as in ADD 1 TO WS-COUNT.`);
+        const size = this.parseClauseBlock(['SIZE', 'ERROR'], 'END-ADD');
+        return { k: 'ADD', srcs, to, giving, size, line };
+      }
+      case 'SUBTRACT': {
+        const srcs = this.parseSources(['FROM']);
+        this.expect('FROM', 'FROM (as in SUBTRACT 1 FROM WS-COUNT)');
+        let from = [], minuend = null, giving = [];
+        const save = this.pos;
+        from = this.parseTargets(['GIVING', 'ON', 'NOT', 'SIZE']);
+        if (this.is('GIVING')) {
+          this.pos = save; minuend = this.parseOperand(); this.expect('GIVING');
+          giving = this.parseTargets(['ON', 'NOT', 'SIZE']); from = [];
+        } else if (!from.length) {
+          minuend = this.parseOperand(); this.expect('GIVING', 'GIVING (a number can only be subtracted from with GIVING)');
+          giving = this.parseTargets(['ON', 'NOT', 'SIZE']);
+        }
+        const size = this.parseClauseBlock(['SIZE', 'ERROR'], 'END-SUBTRACT');
+        return { k: 'SUBTRACT', srcs, from, minuend, giving, size, line };
+      }
+      case 'MULTIPLY': {
+        const a = this.parseOperand();
+        this.expect('BY', 'BY (as in MULTIPLY 2 BY WS-NUM)');
+        let by = [], b = null, giving = [];
+        const save = this.pos;
+        by = this.parseTargets(['GIVING', 'ON', 'NOT', 'SIZE']);
+        if (this.is('GIVING') || !by.length) {
+          this.pos = save; b = this.parseOperand(); this.expect('GIVING');
+          giving = this.parseTargets(['ON', 'NOT', 'SIZE']); by = [];
+        }
+        const size = this.parseClauseBlock(['SIZE', 'ERROR'], 'END-MULTIPLY');
+        return { k: 'MULTIPLY', a, by, b, giving, size, line };
+      }
+      case 'DIVIDE': {
+        const a = this.parseOperand();
+        let mode;
+        if (this.accept('INTO')) mode = 'INTO'; else if (this.accept('BY')) mode = 'BY';
+        else throw E(line, `DIVIDE needs INTO or BY, as in DIVIDE 2 INTO WS-NUM or DIVIDE WS-A BY 2 GIVING WS-B.`);
+        let into = [], b = null, giving = [], rem = null;
+        const save = this.pos;
+        if (mode === 'INTO') into = this.parseTargets(['GIVING', 'REMAINDER', 'ON', 'NOT', 'SIZE']);
+        if (mode === 'BY' || this.is('GIVING') || !into.length) {
+          this.pos = save; b = this.parseOperand(); into = [];
+          this.expect('GIVING', 'GIVING (to say where the answer goes)');
+          giving = this.parseTargets(['REMAINDER', 'ON', 'NOT', 'SIZE']);
+          if (this.accept('REMAINDER')) rem = this.parseRef();
+        }
+        const size = this.parseClauseBlock(['SIZE', 'ERROR'], 'END-DIVIDE');
+        return { k: 'DIVIDE', a, mode, into, b, giving, rem, size, line };
+      }
+      case 'COMPUTE': {
+        const targets = this.parseTargets(['EQUAL']);
+        if (!targets.length) throw E(line, `COMPUTE needs a data item to store the answer in.`);
+        if (this.isOp('=')) this.next(); else if (!this.accept('EQUAL')) throw E(line, `COMPUTE needs an = sign, as in COMPUTE WS-TOTAL = WS-A + WS-B.`);
+        const expr = this.parseExpr();
+        const size = this.parseClauseBlock(['SIZE', 'ERROR'], 'END-COMPUTE');
+        return { k: 'COMPUTE', targets, expr, size, line };
+      }
+      case 'IF': {
+        const cond = this.parseCond();
+        this.accept('THEN');
+        const then = this.parseStatements(['ELSE', 'END-IF']);
+        let els = null;
+        if (this.accept('ELSE')) els = this.parseStatements(['END-IF']);
+        this.accept('END-IF');
+        return { k: 'IF', cond, then, els, line };
+      }
+      case 'EVALUATE': {
+        let subj;
+        if (this.accept('TRUE')) subj = { t: 'TRUE' };
+        else if (this.accept('FALSE')) subj = { t: 'FALSE' };
+        else subj = { t: 'expr', e: this.parseExpr() };
+        if (this.is('ALSO')) throw E(line, `EVALUATE ... ALSO isn't supported here. Use EVALUATE TRUE with AND in each WHEN instead.`);
+        const whens = []; let other = null;
+        if (!this.is('WHEN')) throw E(line, `EVALUATE needs at least one WHEN.`);
+        while (this.is('WHEN')) {
+          this.next();
+          if (this.accept('OTHER')) { other = this.parseStatements(['WHEN', 'END-EVALUATE']); continue; }
+          const objs = [this.parseWhenObj(subj)];
+          while (this.is('WHEN') && !this.is('OTHER', 1)) { this.next(); objs.push(this.parseWhenObj(subj)); }
+          whens.push({ objs, stmts: this.parseStatements(['WHEN', 'END-EVALUATE']) });
+        }
+        if (!this.accept('END-EVALUATE') && this.peek().t !== 'period') throw E(this.peek().line, `expected END-EVALUATE but found ${desc(this.peek())}.`);
+        return { k: 'EVALUATE', subj, whens, other, line };
+      }
+      case 'PERFORM': return this.parsePerform(line);
+      case 'STOP': this.expect('RUN', 'RUN (as in STOP RUN)'); return { k: 'STOP', line };
+      case 'GOBACK': return { k: 'STOP', line };
+      case 'CONTINUE': return { k: 'CONTINUE', line };
+      case 'NEXT': this.expect('SENTENCE'); return { k: 'CONTINUE', line };
+      case 'EXIT': {
+        if (this.accept('PROGRAM')) return { k: 'STOP', line };
+        if (this.accept('PARAGRAPH') || this.accept('SECTION')) return { k: 'EXITPARA', line };
+        if (this.accept('PERFORM')) { const cycle = !!this.accept('CYCLE'); return { k: 'EXITPERF', cycle, line }; }
+        return { k: 'CONTINUE', line };
+      }
+      case 'GO': {
+        this.accept('TO');
+        const n = this.next();
+        if (n.t !== 'word' || !this.ctx.paraNames.has(n.u)) throw E(line, `GO TO needs a paragraph name, and there's no paragraph called ${n.v}.`);
+        return { k: 'GOTO', name: n.u, line };
+      }
+      case 'INITIALIZE': {
+        const targets = this.parseTargets().map(x => x.ref);
+        if (this.is('REPLACING')) throw E(line, `INITIALIZE ... REPLACING isn't supported here.`);
+        return { k: 'INITIALIZE', targets, line };
+      }
+      case 'SET': {
+        const targets = [];
+        while (this.peek().t === 'word' && !['TO', 'UP', 'DOWN'].includes(this.peek().u)) targets.push(this.parseRef());
+        if (!targets.length) throw E(line, `SET needs a data item, as in SET IS-DONE TO TRUE.`);
+        if (this.accept('TO')) {
+          if (this.accept('TRUE')) {
+            targets.forEach(r => { if (r.it.kind !== 'C') throw E(line, `SET ... TO TRUE only works on an 88-level condition name, and ${r.name} isn't one.`); });
+            return { k: 'SETTRUE', targets, line };
+          }
+          if (this.is('FALSE')) throw E(line, `SET ... TO FALSE isn't supported here. SET a different condition to TRUE instead.`);
+          return { k: 'SETTO', targets, val: this.parseExpr(), line };
+        }
+        if (this.accept('UP')) { this.expect('BY'); return { k: 'SETBY', targets, val: this.parseExpr(), sign: 1, line }; }
+        if (this.accept('DOWN')) { this.expect('BY'); return { k: 'SETBY', targets, val: this.parseExpr(), sign: -1, line }; }
+        throw E(line, `SET needs TO, UP BY or DOWN BY.`);
+      }
+      case 'STRING': {
+        const parts = [];
+        for (;;) {
+          const srcs = this.parseSources(['DELIMITED', 'INTO']);
+          let delim = 'SIZE';
+          if (this.accept('DELIMITED')) { this.accept('BY'); delim = this.accept('SIZE') ? 'SIZE' : this.parseOperand(); }
+          if (!srcs.length) throw E(line, `STRING needs values to join before DELIMITED or INTO.`);
+          parts.push({ srcs, delim });
+          if (this.is('INTO')) break;
+          if (this.isStmtEnd()) throw E(line, `STRING needs INTO followed by where to put the result.`);
+        }
+        this.expect('INTO');
+        const into = this.parseRef();
+        let ptr = null;
+        this.accept('WITH');
+        if (this.accept('POINTER')) ptr = this.parseRef();
+        const ovf = this.parseClauseBlock(['OVERFLOW'], 'END-STRING');
+        return { k: 'STRING', parts, into, ptr, ovf, line };
+      }
+      case 'UNSTRING': {
+        const src = this.parseRef();
+        const delims = [];
+        if (this.accept('DELIMITED')) {
+          this.accept('BY');
+          do { const all = !!this.accept('ALL'); delims.push({ all, e: this.parseOperand() }); } while (this.accept('OR'));
+        }
+        this.expect('INTO', 'INTO (as in UNSTRING text DELIMITED BY "," INTO A B C)');
+        const targets = [];
+        while (this.peek().t === 'word' && !this.isStmtEnd() && !['WITH', 'POINTER', 'TALLYING', 'ON', 'OVERFLOW', 'NOT'].includes(this.peek().u)) {
+          const r = this.parseRef(); let dlm = null, cnt = null;
+          if (this.accept('DELIMITER')) { this.accept('IN'); dlm = this.parseRef(); }
+          if (this.accept('COUNT')) { this.accept('IN'); cnt = this.parseRef(); }
+          targets.push({ r, dlm, cnt });
+        }
+        let ptr = null, tally = null;
+        this.accept('WITH');
+        if (this.accept('POINTER')) ptr = this.parseRef();
+        if (this.accept('TALLYING')) { this.accept('IN'); tally = this.parseRef(); }
+        const ovf = this.parseClauseBlock(['OVERFLOW'], 'END-UNSTRING');
+        return { k: 'UNSTRING', src, delims, targets, ptr, tally, ovf, line };
+      }
+      case 'INSPECT': {
+        const target = this.parseRef();
+        const tally = [], repl = []; let conv = null;
+        if (this.accept('TALLYING')) {
+          while (this.peek().t === 'word' && !this.is('REPLACING') && !this.isStmtEnd()) {
+            const cnt = this.parseRef();
+            this.expect('FOR', 'FOR (as in TALLYING WS-COUNT FOR ALL "A")');
+            while (this.is('ALL') || this.is('LEADING') || this.is('CHARACTERS')) {
+              const kind = this.next().u;
+              const e = kind === 'CHARACTERS' ? null : this.parseOperand();
+              tally.push({ cnt, kind, e, b: this.parseBounds() });
+            }
+          }
+        }
+        if (this.accept('REPLACING')) {
+          while (this.is('ALL') || this.is('LEADING') || this.is('FIRST') || this.is('CHARACTERS')) {
+            const kind = this.next().u;
+            if (kind === 'CHARACTERS') { this.expect('BY'); repl.push({ kind, e: null, by: this.parseOperand(), b: this.parseBounds() }); continue; }
+            do {
+              const e = this.parseOperand(); this.expect('BY');
+              repl.push({ kind, e, by: this.parseOperand(), b: this.parseBounds() });
+            } while (this.is('BY', 1) && !this.isStmtEnd() && !['ALL', 'LEADING', 'FIRST', 'CHARACTERS'].includes(this.peek().u));
+          }
+        }
+        if (this.accept('CONVERTING')) {
+          const from = this.parseOperand(); this.expect('TO');
+          conv = { from, to: this.parseOperand(), b: this.parseBounds() };
+        }
+        this.accept('END-INSPECT');
+        if (!tally.length && !repl.length && !conv) throw E(line, `INSPECT needs TALLYING, REPLACING or CONVERTING.`);
+        return { k: 'INSPECT', target, tally, repl, conv, line };
+      }
+    }
+    throw E(line, `${t.u} isn't supported in this workbench yet.`);
+  }
+  parseBounds() {
+    const b = {};
+    while (this.is('BEFORE') || this.is('AFTER')) { const w = this.next().u; this.accept('INITIAL'); b[w] = this.parseOperand(); }
+    return b;
+  }
+  parseWhenObj(subj) {
+    if (this.accept('ANY')) return { any: true };
+    if (subj.t !== 'expr') return { cond: this.parseCond() };
+    const not = !!this.accept('NOT');
+    const e = this.parseExpr();
+    let thru = null;
+    if (this.accept('THRU') || this.accept('THROUGH')) thru = this.parseExpr();
+    return { not, e, thru };
+  }
+  parsePerform(line) {
+    const t = this.peek();
+    let from = null, to = null;
+    if (t.t === 'word' && this.ctx.paraNames.has(t.u) && !VERBS.has(t.u)) {
+      from = this.next().u;
+      if (this.accept('THRU') || this.accept('THROUGH')) {
+        const e = this.next();
+        if (!this.ctx.paraNames.has(e.u)) throw E(line, `there's no paragraph called ${e.v}.`);
+        to = e.u;
+      }
+    }
+    const node = { k: 'PERFORM', from, to, body: null, mode: 'once', testAfter: false, line };
+    if (this.accept('WITH')) { }
+    if (this.accept('TEST')) { if (this.accept('AFTER')) node.testAfter = true; else this.expect('BEFORE', 'BEFORE or AFTER'); }
+    if (this.accept('UNTIL')) { node.mode = 'until'; node.until = this.parseCond(); }
+    else if (this.accept('VARYING')) {
+      node.mode = 'varying'; node.vary = [this.parseVary()];
+      while (this.accept('AFTER')) node.vary.push(this.parseVary());
+    } else {
+      const p = this.peek();
+      if ((p.t === 'num' || p.t === 'word') && !this.isStmtEnd(p) && !(p.t === 'word' && (RESERVED.has(p.u)))) {
+        const save = this.pos;
+        try {
+          const n = this.parseOperand();
+          if (this.accept('TIMES')) { node.mode = 'times'; node.times = n; }
+          else this.pos = save;
+        } catch (e) {
+          if (!from) {
+            if (p.t === 'word') throw E(p.line, `there's no paragraph or data item called ${p.v}. Check the spelling of the paragraph name.`);
+          }
+          this.pos = save;
+        }
+      }
+    }
+    if (!from) {
+      if (this.peek().t === 'word' && !this.isStmtEnd() && !RESERVED.has(this.peek().u)) {
+        throw E(this.peek().line, `there's no paragraph called ${this.peek().v}. Paragraph names must match exactly, including hyphens.`);
+      }
+      node.body = this.parseStatements(['END-PERFORM']);
+      if (!this.accept('END-PERFORM')) throw E(this.peek().line, `this inline PERFORM (started on line ${line}) needs an END-PERFORM before ${desc(this.peek())}.`);
+    }
+    return node;
+  }
+  parseVary() {
+    const ref = this.parseRef();
+    this.expect('FROM', 'FROM (as in VARYING WS-I FROM 1 BY 1 UNTIL ...)');
+    const from = this.parseExpr();
+    this.expect('BY', 'BY (as in VARYING WS-I FROM 1 BY 1 UNTIL ...)');
+    const by = this.parseExpr();
+    this.expect('UNTIL', 'UNTIL (the condition that ends the loop)');
+    return { ref, from, by, until: this.parseCond() };
+  }
+}
+
+/* ===================== Compile ===================== */
+function compile(src, fixed) {
+  const toks = tokenize(src, fixed);
+  if (!toks.length) throw E(0, 'The program is empty. Start with IDENTIFICATION DIVISION.');
+  let progId = null, dataAt = -1, procAt = -1;
+  for (let i = 0; i < toks.length; i++) {
+    const t = toks[i];
+    if (t.t !== 'word') continue;
+    if (t.u === 'PROGRAM-ID' && progId == null) {
+      let j = i + 1; if (toks[j] && toks[j].t === 'period') j++;
+      if (toks[j]) progId = toks[j].v.toUpperCase();
+    }
+    if (t.u === 'DATA' && toks[i + 1] && toks[i + 1].u === 'DIVISION' && dataAt < 0) dataAt = i;
+    if (t.u === 'PROCEDURE' && toks[i + 1] && toks[i + 1].u === 'DIVISION') { procAt = i; break; }
+  }
+  if (procAt < 0) throw E(0, 'No PROCEDURE DIVISION found. Every program needs one; that is where the instructions go.');
+
+  /* ---- DATA DIVISION ---- */
+  const wsToks = [];
+  if (dataAt >= 0) {
+    let section = null;
+    for (let i = dataAt + 2; i < procAt; i++) {
+      const t = toks[i];
+      if (t.t === 'period' && section === null) continue;
+      if (t.t === 'word' && toks[i + 1] && toks[i + 1].u === 'SECTION') {
+        section = t.u; i++;
+        if (toks[i + 1] && toks[i + 1].t === 'period') i++;
+        continue;
+      }
+      if (section === 'WORKING-STORAGE' || section === 'LOCAL-STORAGE') wsToks.push(t);
+      else if (section === 'FILE' && t.t === 'word' && (t.u === 'FD' || t.u === 'SD')) throw E(t.line, 'File handling (FD, OPEN, READ, WRITE) isn\'t supported in this workbench yet. Use WORKING-STORAGE and DISPLAY instead.');
+      else if (section === 'LINKAGE' && t.t === 'num') throw E(t.line, 'LINKAGE SECTION isn\'t supported here, since programs can\'t CALL each other yet.');
+      else if (section === null && t.t !== 'period') throw E(t.line, `expected a section such as WORKING-STORAGE SECTION. after DATA DIVISION, but found ${desc(t)}.`);
+    }
+  }
+  const byName = new Map();
+  const all = [], top = [];
+  const ctx = {
+    byName, paraNames: new Set(),
+    lookup(node) {
+      let c = byName.get(node.name) || [];
+      if (node.quals.length) c = c.filter(it => node.quals.every(q => { for (let p = it.parent; p; p = p.parent) if (p.name === q) return true; return false; }));
+      if (!c.length) throw E(node.line, `I can't find a data item called ${node.name}. Check the spelling, and make sure it's declared in WORKING-STORAGE.`);
+      if (c.length > 1) throw E(node.line, `${node.name} is declared more than once. Add OF and the group name to say which one, for example ${node.name} OF ${c[0].parent ? c[0].parent.name : 'GROUP-NAME'}.`);
+      return c[0];
+    }
+  };
+  {
+    const P = new Parser(wsToks, ctx);
+    let stack = [], last = null;
+    while (P.peek().t !== 'eof') {
+      const t = P.next();
+      if (t.t === 'period') continue;
+      if (t.t !== 'num' || !/^\d+$/.test(t.v)) throw E(t.line, `expected a level number such as 01, 05 or 77 to start a data item, but found ${desc(t)}. Did the previous line end with a period?`);
+      const level = +t.v;
+      if (!((level >= 1 && level <= 49) || level === 66 || level === 77 || level === 88)) throw E(t.line, `${t.v} isn't a valid level number. Use 01–49, 77 or 88.`);
+      if (level === 66) throw E(t.line, 'Level 66 (RENAMES) isn\'t supported here.');
+      let name = 'FILLER';
+      if (P.peek().t === 'word' && !DATA_CLAUSES.has(P.peek().u)) name = P.next().u;
+      const it = { name, level, line: t.line, children: [], conds: [], values: null, parent: null };
+      while (P.peek().t !== 'period' && P.peek().t !== 'eof') {
+        const c = P.next();
+        if (c.t === 'num' && /^\d+$/.test(c.v)) throw E(c.line, `the data item ${name} on line ${t.line} needs a period (.) at the end.`);
+        if (c.t !== 'word') continue;
+        switch (c.u) {
+          case 'PIC': case 'PICTURE': {
+            P.accept('IS');
+            const p = P.next();
+            if (p.t !== 'pic') throw E(c.line, `PIC needs a picture such as X(10) or 9(5)V99.`);
+            it.pic = p.v.toUpperCase(); break;
+          }
+          case 'VALUE': case 'VALUES': {
+            P.accept('IS', 'ARE'); it.values = [];
+            do {
+              const v = P.parseLit(); let thru = null;
+              if (P.accept('THRU', 'THROUGH')) thru = P.parseLit();
+              it.values.push({ v, thru });
+            } while (level === 88 && P.peek().t !== 'period' && P.peek().t !== 'eof');
+            break;
+          }
+          case 'OCCURS': {
+            const n = P.next();
+            if (n.t !== 'num') throw E(c.line, `OCCURS needs a number, as in OCCURS 10 TIMES.`);
+            it.occurs = +n.v;
+            if (P.accept('TO')) it.occurs = +P.next().v;
+            P.accept('TIMES');
+            if (P.accept('DEPENDING')) { P.accept('ON'); P.next(); }
+            while (P.accept('ASCENDING', 'DESCENDING')) { P.accept('KEY'); P.accept('IS'); while (P.peek().t === 'word' && !DATA_CLAUSES.has(P.peek().u)) P.next(); }
+            if (P.accept('INDEXED')) { P.accept('BY'); it.indexes = []; while (P.peek().t === 'word' && !DATA_CLAUSES.has(P.peek().u)) it.indexes.push(P.next().u); }
+            if (it.occurs < 1) throw E(c.line, `OCCURS needs at least 1 entry.`);
+            break;
+          }
+          case 'REDEFINES': throw E(c.line, 'REDEFINES isn\'t supported in this workbench yet. Give each item its own storage instead.');
+          default: break; // USAGE, COMP, SIGN … accepted and treated as plain DISPLAY numbers
+        }
+      }
+      if (P.peek().t === 'period') P.next();
+      if (level === 88) {
+        if (!last) throw E(t.line, 'an 88-level condition must come right after the data item it describes.');
+        if (!it.values) throw E(t.line, `the condition ${name} needs a VALUE, as in 88 ${name} VALUE "Y".`);
+        it.kind = 'C'; it.parent = last; last.conds.push(it); all.push(it);
+        continue;
+      }
+      if (level === 1 || level === 77) { stack = [it]; top.push(it); }
+      else {
+        while (stack.length && stack[stack.length - 1].level >= level) stack.pop();
+        if (!stack.length || stack[0].level === 77) throw E(t.line, `level ${t.v} item ${name} needs an 01-level group above it.`);
+        const par = stack[stack.length - 1];
+        it.parent = par; par.children.push(it); stack.push(it);
+      }
+      last = it; all.push(it);
+      if (it.indexes) for (const ix of it.indexes) {
+        const idx = { name: ix, level: 77, kind: '9', digits: 4, scale: 0, signed: false, len: 4, children: [], conds: [], values: null, parent: null, isIndex: true, line: t.line };
+        all.push(idx); top.push(idx);
+      }
+    }
+  }
+  function finalize(it, owner) {
+    if (it.occurs) {
+      if (owner) throw E(it.line, 'tables inside tables (OCCURS inside OCCURS) aren\'t supported yet.');
+      if (it.level === 1 || it.level === 77) throw E(it.line, 'OCCURS can\'t be used on a level 01 or 77 item. Put the table inside an 01 group.');
+      owner = it;
+    }
+    it.owner = owner;
+    if (it.children.length) {
+      if (it.pic) throw E(it.line, `${it.name} has a PIC clause and also items under it. A group item can't have a PIC.`);
+      it.kind = 'G';
+      it.children.forEach(c => finalize(c, owner));
+      it.len = it.children.reduce((a, c) => a + c.len * (c.occurs || 1), 0);
+    } else if (!it.isIndex) {
+      if (!it.pic) throw E(it.line, `${it.name} needs a PIC clause, for example PIC X(10) or PIC 9(4).`);
+      Object.assign(it, parsePic(it.pic, it.line));
+    }
+    it.conds.forEach(c => { c.owner = owner; });
+  }
+  top.forEach(it => finalize(it, null));
+  for (const it of all) {
+    if (it.name === 'FILLER') continue;
+    if (!byName.has(it.name)) byName.set(it.name, []);
+    byName.get(it.name).push(it);
+  }
+
+  /* ---- PROCEDURE DIVISION ---- */
+  let ps = procAt + 2;
+  while (ps < toks.length && toks[ps].t !== 'period') ps++;
+  ps++;
+  const ptoks = toks.slice(ps);
+  for (let i = 0; i < ptoks.length; i++) {
+    const t = ptoks[i];
+    if (t.t !== 'word' || VERBS.has(t.u) || RESERVED.has(t.u) || UNSUP[t.u]) continue;
+    if (i > 0 && ptoks[i - 1].t !== 'period') continue;
+    const n1 = ptoks[i + 1], n2 = ptoks[i + 2];
+    if (n1 && (n1.t === 'period' || (n1.u === 'SECTION' && n2 && n2.t === 'period'))) ctx.paraNames.add(t.u);
+  }
+  const P = new Parser(ptoks, ctx);
+  const paras = [{ name: null, isSection: false, stmts: [], line: ptoks[0] ? ptoks[0].line : 0 }];
+  while (P.peek().t !== 'eof') {
+    const t = P.peek();
+    if (t.t === 'period') { P.next(); continue; }
+    if (t.t === 'word' && ctx.paraNames.has(t.u) && (P.peek(1).t === 'period' || P.is('SECTION', 1))) {
+      P.next();
+      const isSection = !!P.accept('SECTION');
+      P.next();
+      if (paras.some(p => p.name === t.u)) throw E(t.line, `there are two paragraphs called ${t.u}. Each paragraph name must be unique.`);
+      paras.push({ name: t.u, isSection, stmts: [], line: t.line });
+      continue;
+    }
+    if (t.t === 'word' && t.u === 'END' && P.is('PROGRAM', 1)) { while (P.peek().t !== 'eof' && P.peek().t !== 'period') P.next(); continue; }
+    const stmts = P.parseStatements([]);
+    const e = P.peek();
+    if (e.t !== 'period' && e.t !== 'eof') throw E(e.line, `unexpected ${desc(e)}.`);
+    paras[paras.length - 1].stmts.push(...stmts);
+  }
+  if (!paras[0].stmts.length && paras.length > 1) paras.shift();
+  const paraIndex = new Map();
+  paras.forEach((p, i) => { if (p.name) paraIndex.set(p.name, i); });
+  paras.forEach((p, i) => {
+    if (p.isSection) { let j = i + 1; while (j < paras.length && !paras[j].isSection) j++; p.end = j - 1; }
+    else p.end = i;
+  });
+  return { name: progId || 'PROGRAM', all, top, byName, paras, paraIndex };
+}
+
+/* ===================== Runtime ===================== */
+function padR(s, n) { return s.length >= n ? s.slice(0, n) : s + ' '.repeat(n - s.length); }
+function fill(ch, n) { if (!ch.length) ch = ' '; let s = ''; while (s.length < n) s += ch; return s.slice(0, n); }
+const tick = () => new Promise(r => setTimeout(r, 0));
+
+class Runtime {
+  constructor(prog, host) {
+    this.p = prog; this.host = host;
+    this.steps = 0; this.maxSteps = host.maxSteps || 3000000; this.stopped = false;
+    this.mem = new Map();
+    for (const it of prog.top) this.initStorage(it);
+    for (const it of prog.top) this.applyValues(it);
+  }
+  initStorage(it) {
+    if (it.kind === 'G') { it.children.forEach(c => this.initStorage(c)); return; }
+    if (it.kind === 'C') return;
+    const def = this.defaultRaw(it);
+    if (it.owner) this.mem.set(it, Array.from({ length: it.owner.occurs }, () => def));
+    else this.mem.set(it, def);
+  }
+  defaultRaw(it) { return it.kind === 'X' ? ' '.repeat(it.len) : it.kind === '9' ? 0 : formatEdited(it, 0); }
+  applyValues(it) {
+    if (it.kind === 'G') {
+      it.children.forEach(c => this.applyValues(c));
+      if (it.values) {
+        const v = it.values[0].v; const n = it.occurs ? it.len * it.occurs : it.len;
+        const s = v.fig != null ? fill(v.fig, n) : padR(v.str ?? v.text, n);
+        if (it.owner && it.owner !== it) return;
+        if (it.occurs) { for (let k = 0; k < it.occurs; k++) this.setGroupStr(it, k, s.slice(k * it.len, (k + 1) * it.len)); }
+        else this.setGroupStr(it, null, s);
+      }
+      return;
+    }
+    if (it.kind === 'C' || !it.values) return;
+    const v = it.values[0].v;
+    const val = v.str != null ? { s: v.str } : v.fig != null ? { fig: v.fig } : { n: v.num, text: v.text };
+    const count = it.owner ? it.owner.occurs : 1;
+    for (let k = 0; k < count; k++) this.moveTo({ it, idx: it.owner ? k : null, rm: null }, val, {}, it.line);
+  }
+  /* ---- raw access ---- */
+  getRaw(it, idx) { const v = this.mem.get(it); return it.owner ? v[idx] : v; }
+  setRaw(it, idx, raw) { if (it.owner) this.mem.get(it)[idx] = raw; else this.mem.set(it, raw); }
+  digitsOf(it, n) {
+    const m = Math.round(Math.abs(n) * 10 ** it.scale);
+    return String(m).padStart(it.digits + it.scale, '0').slice(-(it.digits + it.scale));
+  }
+  elemStr(it, idx, display) {
+    const raw = this.getRaw(it, idx);
+    if (it.kind === '9') {
+      const d = this.digitsOf(it, raw);
+      return display && it.signed ? (raw < 0 ? '-' : '+') + d : d;
+    }
+    return raw;
+  }
+  strOf(it, idx) { return it.kind === 'G' ? this.groupStr(it, idx) : this.elemStr(it, idx, false); }
+  groupStr(g, idx) {
+    if (g.occurs && idx == null) { let s = ''; for (let k = 0; k < g.occurs; k++) s += this.groupStr(g, k); return s; }
+    let s = '';
+    for (const ch of g.children) {
+      if (ch.occurs) for (let k = 0; k < ch.occurs; k++) s += this.strOf(ch, k);
+      else s += this.strOf(ch, idx);
+    }
+    return s;
+  }
+  fullLen(it, idx) { return it.occurs && idx == null ? it.len * it.occurs : it.len; }
+  setElemFromStr(it, idx, piece) {
+    if (it.kind === 'X' || it.kind === 'E') this.setRaw(it, idx, padR(piece, it.len));
+    else {
+      const d = piece.replace(/[^0-9]/g, '');
+      let n = d ? Number(d) / 10 ** it.scale : 0;
+      if (it.signed && /-/.test(piece)) n = -n;
+      this.setRaw(it, idx, n);
+    }
+  }
+  setGroupStr(g, idx, s) {
+    let pos = 0;
+    const put = (it, k) => {
+      if (it.kind === 'G') {
+        if (it.occurs && k == null) { for (let j = 0; j < it.occurs; j++) put(it, j); return; }
+        for (const ch of it.children) {
+          if (ch.occurs) for (let j = 0; j < ch.occurs; j++) put(ch, j); else put(ch, k);
+        }
+      } else { this.setElemFromStr(it, k, padR(s.slice(pos, pos + it.len), it.len)); pos += it.len; }
+    };
+    put(g, idx);
+  }
+  writeWhole(it, idx, s) {
+    if (it.kind === 'G') this.setGroupStr(it, idx, padR(s, this.fullLen(it, idx)));
+    else this.setElemFromStr(it, idx, s);
+  }
+  /* ---- references ---- */
+  resolve(node) {
+    const it = node.it;
+    let idx = null;
+    const owner = it.kind === 'C' ? it.parent.owner : it.owner;
+    if (node.subs) {
+      const n = Math.trunc(this.num(node.subs[0]));
+      const max = owner.occurs;
+      if (n < 1 || n > max) throw E(node.line, `subscript ${n} is out of range for ${node.name}. It has entries 1 to ${max}.`);
+      idx = n - 1;
+    } else if (owner && !(it.kind === 'G' && it.occurs)) {
+      throw E(node.line, `${node.name} is part of a table, so it needs a subscript, like ${node.name}(1).`);
+    }
+    let rm = null;
+    if (node.rm) {
+      const st = Math.trunc(this.num(node.rm.start));
+      const total = it.kind === 'G' ? this.fullLen(it, idx) : it.len;
+      const ln = node.rm.len ? Math.trunc(this.num(node.rm.len)) : total - st + 1;
+      if (st < 1 || ln < 1 || st + ln - 1 > total) throw E(node.line, `(${st}:${ln}) is outside ${node.name}, which is ${total} characters long.`);
+      rm = { st, ln };
+    }
+    return { it, idx, rm, line: node.line, name: node.name };
+  }
+  refStr(r) {
+    const s = r.it.kind === 'G' ? this.groupStr(r.it, r.idx) : this.elemStr(r.it, r.idx, false);
+    return r.rm ? s.substr(r.rm.st - 1, r.rm.ln) : s;
+  }
+  refNum(r) {
+    if (!r.rm && r.it.kind === '9') return this.getRaw(r.it, r.idx);
+    if (!r.rm && r.it.kind === 'E') return deEdit(this.getRaw(r.it, r.idx));
+    const s = this.refStr(r).trim();
+    if (s === '') return 0;
+    if (!/^[+-]?\d*\.?\d+$/.test(s)) throw E(r.line, `${r.name} holds "${s}", which isn't a number, so it can't be used in arithmetic.`);
+    return Number(s);
+  }
+  setRefStr(r, s, figCh) {
+    if (r.rm) {
+      const cur = r.it.kind === 'G' ? this.groupStr(r.it, r.idx) : this.elemStr(r.it, r.idx, false);
+      const piece = figCh != null ? fill(figCh, r.rm.ln) : padR(s, r.rm.ln);
+      this.writeWhole(r.it, r.idx, cur.slice(0, r.rm.st - 1) + piece + cur.slice(r.rm.st - 1 + r.rm.ln));
+    } else {
+      const n = r.it.kind === 'G' ? this.fullLen(r.it, r.idx) : r.it.len;
+      this.writeWhole(r.it, r.idx, figCh != null ? fill(figCh, n) : padR(s, n));
+    }
+  }
+  storeNum(r, n, rounded, sizeCheck) {
+    const it = r.it;
+    if (r.rm || it.kind === 'X' || it.kind === 'G') {
+      this.setRefStr(r, fmtNum(Math.abs(n))); return false;
+    }
+    const sc = it.scale;
+    let m = +(n * 10 ** sc).toFixed(6);
+    m = rounded ? Math.sign(m) * Math.round(Math.abs(m)) : Math.trunc(m);
+    const lim = 10 ** (it.digits + sc);
+    const over = Math.abs(m) >= lim;
+    if (over && sizeCheck) return true;
+    if (over) m = Math.sign(m) * (Math.abs(m) % lim);
+    if (!it.signed) m = Math.abs(m);
+    const q = +(m / 10 ** sc).toFixed(sc);
+    this.setRaw(it, r.idx, it.kind === '9' ? q : formatEdited(it, q));
+    return over;
+  }
+  moveTo(r, v, opts, line) {
+    const it = r.it;
+    if (it.kind === 'C') throw E(line, `${r.name || it.name} is a condition name (88 level). Use SET ${it.name} TO TRUE instead of MOVE.`);
+    if (r.rm || it.kind === 'X' || it.kind === 'G') {
+      if (v.fig != null) return this.setRefStr(r, null, v.fig);
+      let s = v.s;
+      if (s == null) s = v.ref && v.ref.it.kind === '9' ? this.digitsOf(v.ref.it, v.n) : (v.text != null ? v.text.replace(/^[+-]/, '') : fmtNum(Math.abs(v.n)));
+      return this.setRefStr(r, s, null);
+    }
+    let n;
+    if (v.n != null) n = v.n;
+    else if (v.fig != null) n = 0;
+    else {
+      const s = v.s.trim();
+      if (s === '') n = 0;
+      else if (/^[+-]?\d*\.?\d+$/.test(s)) n = Number(s);
+      else if (v.edited) n = deEdit(s);
+      else throw E(line, `can't put the text "${s}" into ${r.name || it.name}, which is a number field (PIC ${it.pic}).`);
+    }
+    return this.storeNum(r, n, opts.rounded, opts.size);
+  }
+  /* ---- values ---- */
+  val(node) {
+    switch (node.k) {
+      case 'num': return { n: node.n, text: node.text };
+      case 'str': return { s: node.s };
+      case 'fig': return { fig: node.ch };
+      case 'ref': {
+        const r = this.resolve(node);
+        if (r.it.kind === 'C') throw E(node.line, `${node.name} is a condition name (88 level). Use it in IF, like IF ${node.name}.`);
+        if (!r.rm && r.it.kind === '9') return { n: this.getRaw(r.it, r.idx), ref: r };
+        return { s: this.refStr(r), ref: r, edited: r.it.kind === 'E' && !r.rm };
+      }
+      case 'fn': {
+        const v = this.callFn(node);
+        if (node.rm) {
+          const s = v.s != null ? v.s : fmtNum(v.n);
+          const st = Math.trunc(this.num(node.rm.start));
+          const ln = node.rm.len ? Math.trunc(this.num(node.rm.len)) : s.length - st + 1;
+          return { s: s.substr(st - 1, ln) };
+        }
+        return v;
+      }
+      default: return { n: this.num(node) };
+    }
+  }
+  num(node) {
+    switch (node.k) {
+      case 'num': return node.n;
+      case 'ref': return this.refNum(this.resolve(node));
+      case 'neg': return -this.num(node.e);
+      case 'fig': if (node.ch === '0') return 0; throw E(node.line, `a figurative constant like SPACES can't be used in arithmetic.`);
+      case 'str': {
+        const s = node.s.trim();
+        if (/^[+-]?\d*\.?\d+$/.test(s)) return Number(s);
+        throw E(node.line, `"${node.s}" is text, so it can't be used in arithmetic.`);
+      }
+      case 'fn': {
+        const v = this.val(node);
+        if (v.n != null) return v.n;
+        const s = String(v.s).trim();
+        if (/^[+-]?\d*\.?\d+$/.test(s)) return Number(s);
+        throw E(node.line, `FUNCTION ${node.name} returns text, so it can't be used in arithmetic.`);
+      }
+      case 'bin': {
+        const a = this.num(node.l), b = this.num(node.r);
+        switch (node.op) {
+          case '+': return a + b;
+          case '-': return a - b;
+          case '*': return a * b;
+          case '/': if (b === 0) throw new DivZero(node.line); return a / b;
+          case '**': {
+            const r = Math.pow(a, b);
+            if (!isFinite(r)) throw new DivZero(node.line);
+            return r;
+          }
+        }
+      }
+    }
+    throw E(node.line, 'this expression can\'t be calculated.');
+  }
+  strOfVal(v) {
+    if (v.s != null) return v.s;
+    if (v.fig != null) return v.fig;
+    if (v.ref && v.ref.it.kind === '9') return this.digitsOf(v.ref.it, v.n);
+    return v.text != null ? v.text : fmtNum(v.n);
+  }
+  numOfVal(v, line, fname) {
+    if (v.n != null) return v.n;
+    if (v.fig === '0') return 0;
+    const s = this.strOfVal(v).trim();
+    if (/^[+-]?\d*\.?\d+$/.test(s)) return Number(s);
+    if (v.edited) return deEdit(s);
+    throw E(line, `FUNCTION ${fname} needs a number, but was given "${s}".`);
+  }
+  callFn(node) {
+    const name = node.name, line = node.line;
+    const args = node.args.map(a => this.val(a));
+    const need = (n) => { if (args.length < n) throw E(line, `FUNCTION ${name} needs ${n} argument${n > 1 ? 's' : ''}.`); };
+    const S = i => this.strOfVal(args[i]);
+    const N = i => this.numOfVal(args[i], line, name);
+    const nums = () => { need(1); return args.map((_, i) => N(i)); };
+    const now = new Date();
+    const p2 = n => String(n).padStart(2, '0');
+    switch (name) {
+      case 'UPPER-CASE': need(1); return { s: S(0).toUpperCase() };
+      case 'LOWER-CASE': need(1); return { s: S(0).toLowerCase() };
+      case 'REVERSE': need(1); return { s: [...S(0)].reverse().join('') };
+      case 'TRIM': need(1); {
+        const s = S(0);
+        return { s: node.mode === 'LEADING' ? s.replace(/^ +/, '') : node.mode === 'TRAILING' ? s.replace(/ +$/, '') : s.replace(/^ +| +$/g, '') };
+      }
+      case 'LENGTH': need(1); return { n: S(0).length };
+      case 'NUMVAL': case 'NUMVAL-C': need(1); {
+        const s = S(0).trim(); const neg = /-|CR|DB/i.test(s);
+        const t = s.replace(/[^0-9.]/g, ''); const n = t ? Number(t) : 0;
+        return { n: neg ? -n : n };
+      }
+      case 'SQRT': need(1); { const n = N(0); if (n < 0) throw E(line, `FUNCTION SQRT can't take the square root of a negative number.`); return { n: Math.sqrt(n) }; }
+      case 'ABS': need(1); return { n: Math.abs(N(0)) };
+      case 'MOD': need(2); { const a = N(0), b = N(1); if (b === 0) throw new DivZero(line); return { n: a - b * Math.floor(a / b) }; }
+      case 'REM': need(2); { const a = N(0), b = N(1); if (b === 0) throw new DivZero(line); return { n: a - b * Math.trunc(a / b) }; }
+      case 'INTEGER': need(1); return { n: Math.floor(N(0)) };
+      case 'INTEGER-PART': need(1); return { n: Math.trunc(N(0)) };
+      case 'MAX': return { n: Math.max(...nums()) };
+      case 'MIN': return { n: Math.min(...nums()) };
+      case 'SUM': return { n: nums().reduce((a, b) => a + b, 0) };
+      case 'MEAN': { const a = nums(); return { n: a.reduce((x, y) => x + y, 0) / a.length }; }
+      case 'MEDIAN': { const a = nums().sort((x, y) => x - y); const m = a.length >> 1; return { n: a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2 }; }
+      case 'RANGE': { const a = nums(); return { n: Math.max(...a) - Math.min(...a) }; }
+      case 'RANDOM': return { n: Math.random() };
+      case 'PI': return { n: Math.PI };
+      case 'E': return { n: Math.E };
+      case 'EXP': need(1); return { n: Math.exp(N(0)) };
+      case 'LOG': need(1); return { n: Math.log(N(0)) };
+      case 'LOG10': need(1); return { n: Math.log10(N(0)) };
+      case 'SIN': need(1); return { n: Math.sin(N(0)) };
+      case 'COS': need(1); return { n: Math.cos(N(0)) };
+      case 'TAN': need(1); return { n: Math.tan(N(0)) };
+      case 'FACTORIAL': need(1); { let f = 1; for (let i = 2; i <= N(0); i++) f *= i; return { n: f }; }
+      case 'ORD': need(1); return { n: S(0).charCodeAt(0) + 1 };
+      case 'CHAR': need(1); return { s: String.fromCharCode(N(0) - 1) };
+      case 'CONCATENATE': need(1); return { s: args.map((_, i) => S(i)).join('') };
+      case 'CURRENT-DATE': case 'WHEN-COMPILED': {
+        const off = -now.getTimezoneOffset();
+        const s = `${now.getFullYear()}${p2(now.getMonth() + 1)}${p2(now.getDate())}${p2(now.getHours())}${p2(now.getMinutes())}${p2(now.getSeconds())}${p2(Math.floor(now.getMilliseconds() / 10))}${off >= 0 ? '+' : '-'}${p2(Math.floor(Math.abs(off) / 60))}${p2(Math.abs(off) % 60)}`;
+        return { s };
+      }
+      case 'INTEGER-OF-DATE': need(1); {
+        const d = Math.trunc(N(0)); const y = Math.floor(d / 10000), m = Math.floor(d / 100) % 100, dd = d % 100;
+        return { n: Math.round((Date.UTC(y, m - 1, dd) - Date.UTC(1600, 11, 31)) / 86400000) };
+      }
+      case 'DATE-OF-INTEGER': need(1); {
+        const t = new Date(Date.UTC(1600, 11, 31) + N(0) * 86400000);
+        return { n: t.getUTCFullYear() * 10000 + (t.getUTCMonth() + 1) * 100 + t.getUTCDate() };
+      }
+    }
+    throw E(line, `FUNCTION ${name} isn't supported here.`);
+  }
+  /* ---- conditions ---- */
+  compare(a, b) {
+    if (a.n != null && b.n != null) { const d = a.n - b.n; return Math.abs(d) < 1e-9 ? 0 : d < 0 ? -1 : 1; }
+    if (a.fig === '0' && b.n != null) return this.compare({ n: 0 }, b);
+    if (b.fig === '0' && a.n != null) return this.compare(a, { n: 0 });
+    let as = a.fig != null ? null : this.strOfVal(a);
+    let bs = b.fig != null ? null : this.strOfVal(b);
+    if (as == null && bs == null) { as = a.fig; bs = b.fig; }
+    if (as == null) as = fill(a.fig, bs.length);
+    if (bs == null) bs = fill(b.fig, as.length);
+    const n = Math.max(as.length, bs.length);
+    as = padR(as, n); bs = padR(bs, n);
+    return as < bs ? -1 : as > bs ? 1 : 0;
+  }
+  cond(c) {
+    switch (c.k) {
+      case 'or': return this.cond(c.l) || this.cond(c.r);
+      case 'and': return this.cond(c.l) && this.cond(c.r);
+      case 'not': return !this.cond(c.e);
+      case 'cmp': {
+        const r = this.compare(this.val(c.l), this.val(c.r));
+        switch (c.op) { case '=': return r === 0; case '<>': return r !== 0; case '>': return r > 0; case '<': return r < 0; case '>=': return r >= 0; case '<=': return r <= 0; }
+        return false;
+      }
+      case 'cname': {
+        const cn = c.ref.it, par = cn.parent;
+        const r = this.resolve(c.ref);
+        const pr = { it: par, idx: r.idx, rm: null, line: c.line, name: par.name };
+        const pv = par.kind === '9' ? { n: this.getRaw(par, r.idx), ref: pr } : { s: this.refStr(pr) };
+        return cn.values.some(({ v, thru }) => {
+          const lo = v.str != null ? { s: v.str } : v.fig != null ? { fig: v.fig } : { n: v.num, text: v.text };
+          if (!thru) return this.compare(pv, lo) === 0;
+          const hi = thru.str != null ? { s: thru.str } : thru.fig != null ? { fig: thru.fig } : { n: thru.num, text: thru.text };
+          return this.compare(pv, lo) >= 0 && this.compare(pv, hi) <= 0;
+        });
+      }
+      case 'class': {
+        const v = this.val(c.e);
+        let res;
+        switch (c.cls) {
+          case 'NUMERIC': res = v.n != null ? true : /^\d+$/.test(this.strOfVal(v)); break;
+          case 'ALPHABETIC': res = /^[A-Za-z ]*$/.test(this.strOfVal(v)); break;
+          case 'ALPHABETIC-UPPER': res = /^[A-Z ]*$/.test(this.strOfVal(v)); break;
+          case 'ALPHABETIC-LOWER': res = /^[a-z ]*$/.test(this.strOfVal(v)); break;
+          case 'POSITIVE': res = this.numOfVal(v, c.line, 'POSITIVE') > 0; break;
+          case 'NEGATIVE': res = this.numOfVal(v, c.line, 'NEGATIVE') < 0; break;
+          case 'ZERO': res = v.n != null ? v.n === 0 : /^0*$/.test(this.strOfVal(v).trim()) && this.strOfVal(v).trim() !== '' || this.strOfVal(v) === ''; break;
+        }
+        return c.neg ? !res : res;
+      }
+    }
+    return false;
+  }
+  /* ---- execution ---- */
+  async run() {
+    try {
+      if (this.p.paras.length) await this.runParas(0, this.p.paras.length - 1);
+    } catch (e) {
+      if (e instanceof StopRun) return;
+      if (e instanceof ExitPerform) return;
+      throw e;
+    }
+  }
+  async runParas(a, b) {
+    let i = a;
+    while (i <= b) {
+      try { await this.execList(this.p.paras[i].stmts); }
+      catch (e) {
+        if (e instanceof GoTo) { i = e.idx; continue; }
+        if (!(e instanceof ExitPara)) throw e;
+      }
+      i++;
+    }
+  }
+  async execList(list) { for (const s of list) await this.exec(s); }
+  async exec(s) {
+    this.line = s.line;
+    if (++this.steps > this.maxSteps) throw E(s.line, `stopped after ${this.maxSteps.toLocaleString()} steps. The program may be stuck in a loop that never ends; check the UNTIL condition.`);
+    if ((this.steps & 4095) === 0) { await tick(); }
+    if (this.stopped) throw new Halt();
+    try { await this.execOne(s); }
+    catch (e) {
+      if (e instanceof DivZero) throw E(e.line || s.line, `division by zero. Add ON SIZE ERROR to handle it, or check the divisor first.`);
+      if (e instanceof CobolError || e instanceof StopRun || e instanceof Halt || e instanceof ExitPara || e instanceof ExitPerform || e instanceof GoTo) throw e;
+      throw E(s.line, `something went wrong running this line (${e && e.message ? e.message : e}).`);
+    }
+  }
+  async arith(node, compute) {
+    const sizeOn = !!(node.size && node.size.on);
+    let over = false;
+    try { over = compute(sizeOn); }
+    catch (e) { if (e instanceof DivZero && node.size) over = true; else throw e; }
+    if (over && node.size && node.size.on) await this.execList(node.size.on);
+    else if (!over && node.size && node.size.notOn) await this.execList(node.size.notOn);
+  }
+  store(t, n, size) { return this.storeNum(this.resolve(t.ref), n, t.rounded, size); }
+  async execOne(s) {
+    switch (s.k) {
+      case 'DISPLAY': {
+        let out = '';
+        for (const it of s.items) {
+          if (it.k === 'ref') {
+            const r = this.resolve(it);
+            if (r.it.kind === 'C') throw E(it.line, `${it.name} is a condition name, so it can't be displayed. Display ${r.it.parent.name} instead.`);
+            out += !r.rm && r.it.kind === '9' ? this.elemStr(r.it, r.idx, true) : this.refStr(r);
+          } else {
+            const v = this.val(it);
+            out += v.s != null ? v.s : v.fig != null ? v.fig : (v.text != null ? v.text : fmtNum(v.n));
+          }
+        }
+        this.host.write(out.replace(/\u0000/g, ' '), !s.noAdv);
+        return;
+      }
+      case 'ACCEPT': {
+        const r = this.resolve(s.ref);
+        const now = new Date(); const p2 = n => String(n).padStart(2, '0');
+        let text;
+        switch (s.from) {
+          case null: case 'CONSOLE': case 'SYSIN': text = await this.host.input(r.name); if (this.stopped) throw new Halt(); break;
+          case 'DATE': text = `${p2(now.getFullYear() % 100)}${p2(now.getMonth() + 1)}${p2(now.getDate())}`; break;
+          case 'DATE8': text = `${now.getFullYear()}${p2(now.getMonth() + 1)}${p2(now.getDate())}`; break;
+          case 'TIME': text = `${p2(now.getHours())}${p2(now.getMinutes())}${p2(now.getSeconds())}${p2(Math.floor(now.getMilliseconds() / 10))}`; break;
+          case 'DAY': case 'DAY7': {
+            const start = new Date(now.getFullYear(), 0, 0); const doy = Math.floor((now - start) / 86400000);
+            text = (s.from === 'DAY' ? p2(now.getFullYear() % 100) : String(now.getFullYear())) + String(doy).padStart(3, '0'); break;
+          }
+          case 'DAY-OF-WEEK': text = String(now.getDay() === 0 ? 7 : now.getDay()); break;
+          default: throw E(s.line, `ACCEPT ... FROM ${s.from} isn't supported. Try DATE, TIME, DAY or DAY-OF-WEEK.`);
+        }
+        if (r.it.kind === 'X' || r.it.kind === 'G' || r.rm) this.moveTo(r, { s: text }, {}, s.line);
+        else {
+          const t = text.trim();
+          if (t !== '' && !/^[+-]?\d*\.?\d+$/.test(t)) throw E(s.line, `"${t}" isn't a number, but ${r.name} is a number field (PIC ${r.it.pic}).`);
+          this.moveTo(r, { s: t }, {}, s.line);
+        }
+        return;
+      }
+      case 'MOVE': {
+        const v = this.val(s.src);
+        for (const t of s.targets) this.moveTo(this.resolve(t), v, {}, s.line);
+        return;
+      }
+      case 'ADD': return this.arith(s, size => {
+        const sum = s.srcs.reduce((a, n) => a + this.num(n), 0);
+        let over = false;
+        if (s.giving.length) for (const t of s.giving) over = this.store(t, sum, size) || over;
+        else for (const t of s.to) over = this.store(t, this.num(t.ref) + sum, size) || over;
+        return over;
+      });
+      case 'SUBTRACT': return this.arith(s, size => {
+        const sum = s.srcs.reduce((a, n) => a + this.num(n), 0);
+        let over = false;
+        if (s.giving.length) { const m = this.num(s.minuend); for (const t of s.giving) over = this.store(t, m - sum, size) || over; }
+        else for (const t of s.from) over = this.store(t, this.num(t.ref) - sum, size) || over;
+        return over;
+      });
+      case 'MULTIPLY': return this.arith(s, size => {
+        const a = this.num(s.a); let over = false;
+        if (s.giving.length) { const v = a * this.num(s.b); for (const t of s.giving) over = this.store(t, v, size) || over; }
+        else for (const t of s.by) over = this.store(t, a * this.num(t.ref), size) || over;
+        return over;
+      });
+      case 'DIVIDE': return this.arith(s, size => {
+        const a = this.num(s.a); let over = false;
+        if (s.into.length) {
+          if (a === 0) throw new DivZero(s.line);
+          for (const t of s.into) over = this.store(t, this.num(t.ref) / a, size) || over;
+          return over;
+        }
+        const b = this.num(s.b);
+        const dividend = s.mode === 'INTO' ? b : a, divisor = s.mode === 'INTO' ? a : b;
+        if (divisor === 0) throw new DivZero(s.line);
+        const q = dividend / divisor;
+        for (const t of s.giving) over = this.store(t, q, size) || over;
+        if (s.rem) {
+          const g = this.resolve(s.giving[0].ref);
+          const qs = g.it.kind === '9' ? this.getRaw(g.it, g.idx) : Math.trunc(q);
+          const tq = s.giving[0].rounded ? Math.trunc(q * 10 ** (g.it.scale || 0)) / 10 ** (g.it.scale || 0) : qs;
+          over = this.storeNum(this.resolve(s.rem), dividend - tq * divisor, false, size) || over;
+        }
+        return over;
+      });
+      case 'COMPUTE': return this.arith(s, size => {
+        const v = this.num(s.expr); let over = false;
+        for (const t of s.targets) over = this.store(t, v, size) || over;
+        return over;
+      });
+      case 'IF':
+        if (this.cond(s.cond)) await this.execList(s.then);
+        else if (s.els) await this.execList(s.els);
+        return;
+      case 'EVALUATE': {
+        let sv = null, truth = true;
+        if (s.subj.t === 'expr') sv = this.val(s.subj.e); else truth = s.subj.t === 'TRUE';
+        for (const w of s.whens) {
+          const hit = w.objs.some(o => {
+            if (o.any) return true;
+            if (o.cond) return this.cond(o.cond) === truth;
+            let r;
+            if (o.thru) r = this.compare(sv, this.val(o.e)) >= 0 && this.compare(sv, this.val(o.thru)) <= 0;
+            else r = this.compare(sv, this.val(o.e)) === 0;
+            return o.not ? !r : r;
+          });
+          if (hit) { await this.execList(w.stmts); return; }
+        }
+        if (s.other) await this.execList(s.other);
+        return;
+      }
+      case 'PERFORM': return this.perform(s);
+      case 'STOP': throw new StopRun();
+      case 'CONTINUE': return;
+      case 'EXITPARA': throw new ExitPara();
+      case 'EXITPERF': throw new ExitPerform(s.cycle);
+      case 'GOTO': throw new GoTo(this.p.paraIndex.get(s.name));
+      case 'INITIALIZE': {
+        for (const t of s.targets) {
+          const r = this.resolve(t);
+          if (r.rm) { this.setRefStr(r, ''); continue; }
+          this.initItem(r.it, r.idx);
+        }
+        return;
+      }
+      case 'SETTRUE': {
+        for (const t of s.targets) {
+          const r = this.resolve(t); const cn = r.it; const v = cn.values[0].v;
+          const val = v.str != null ? { s: v.str } : v.fig != null ? { fig: v.fig } : { n: v.num, text: v.text };
+          this.moveTo({ it: cn.parent, idx: r.idx, rm: null, name: cn.parent.name }, val, {}, s.line);
+        }
+        return;
+      }
+      case 'SETTO': {
+        const v = this.val(s.val);
+        for (const t of s.targets) this.moveTo(this.resolve(t), v, {}, s.line);
+        return;
+      }
+      case 'SETBY': {
+        const d = this.num(s.val) * s.sign;
+        for (const t of s.targets) { const r = this.resolve(t); this.storeNum(r, this.refNum(r) + d, false, false); }
+        return;
+      }
+      case 'STRING': return this.doString(s);
+      case 'UNSTRING': return this.doUnstring(s);
+      case 'INSPECT': return this.doInspect(s);
+    }
+  }
+  initItem(it, idx) {
+    if (it.kind === 'G') {
+      if (it.occurs && idx == null) { for (let k = 0; k < it.occurs; k++) this.initItem(it, k); return; }
+      for (const ch of it.children) {
+        if (ch.occurs) for (let k = 0; k < ch.occurs; k++) this.initItem(ch, k);
+        else this.initItem(ch, idx);
+      }
+      return;
+    }
+    this.setRaw(it, idx, this.defaultRaw(it));
+  }
+  async loopBody(s) {
+    if (s.body) {
+      try { await this.execList(s.body); }
+      catch (e) { if (e instanceof ExitPerform) return e.cycle ? undefined : 'break'; throw e; }
+    } else {
+      const a = this.p.paraIndex.get(s.from);
+      const b = s.to ? this.p.paraIndex.get(s.to) : this.p.paras[a].end;
+      await this.runParas(a, b);
+    }
+  }
+  async perform(s) {
+    if (s.mode === 'once') { await this.loopBody(s); return; }
+    if (s.mode === 'times') {
+      const n = Math.trunc(this.num(s.times));
+      for (let k = 0; k < n; k++) { if (await this.loopBody(s) === 'break') break; await this.guard(s); }
+      return;
+    }
+    if (s.mode === 'until') {
+      if (s.testAfter) { do { if (await this.loopBody(s) === 'break') break; await this.guard(s); } while (!this.cond(s.until)); }
+      else { while (!this.cond(s.until)) { if (await this.loopBody(s) === 'break') break; await this.guard(s); } }
+      return;
+    }
+    if (s.mode === 'varying') await this.vary(s, 0);
+  }
+  async guard(s) {
+    if (++this.steps > this.maxSteps) throw E(s.line, `stopped after ${this.maxSteps.toLocaleString()} steps. This loop may never end; check its UNTIL condition.`);
+    if ((this.steps & 4095) === 0) await tick();
+    if (this.stopped) throw new Halt();
+  }
+  async vary(s, i) {
+    const v = s.vary[i];
+    const r = () => this.resolve(v.ref);
+    this.storeNum(r(), this.num(v.from), false, false);
+    const step = async () => {
+      if (i < s.vary.length - 1) return this.vary(s, i + 1);
+      return this.loopBody(s);
+    };
+    if (s.testAfter) {
+      for (;;) {
+        if (await step() === 'break') return 'break';
+        await this.guard(s);
+        if (this.cond(v.until)) break;
+        const rr = r(); this.storeNum(rr, this.refNum(rr) + this.num(v.by), false, false);
+      }
+    } else {
+      while (!this.cond(v.until)) {
+        if (await step() === 'break') return 'break';
+        await this.guard(s);
+        const rr = r(); this.storeNum(rr, this.refNum(rr) + this.num(v.by), false, false);
+      }
+    }
+  }
+  doString(s) {
+    const r = this.resolve(s.into);
+    let cur = this.refStr(r);
+    const len = cur.length;
+    let ptr = s.ptr ? Math.trunc(this.num(s.ptr)) : 1;
+    let overflow = ptr < 1 || ptr > len;
+    if (!overflow) {
+      outer: for (const part of s.parts) {
+        const d = part.delim === 'SIZE' ? null : this.strOfVal(this.val(part.delim));
+        for (const src of part.srcs) {
+          let sv = this.strOfVal(this.val(src));
+          if (d != null && d.length) { const k = sv.indexOf(d); if (k >= 0) sv = sv.slice(0, k); }
+          for (const ch of sv) {
+            if (ptr > len) { overflow = true; break outer; }
+            cur = cur.slice(0, ptr - 1) + ch + cur.slice(ptr); ptr++;
+          }
+        }
+      }
+    }
+    this.setRefStr(r, cur);
+    if (s.ptr) this.storeNum(this.resolve(s.ptr), ptr, false, false);
+    return this.afterOverflow(s.ovf, overflow);
+  }
+  async afterOverflow(ovf, overflow) {
+    if (!ovf) return;
+    if (overflow && ovf.on) await this.execList(ovf.on);
+    if (!overflow && ovf.notOn) await this.execList(ovf.notOn);
+  }
+  doUnstring(s) {
+    const src = this.refStr(this.resolve(s.src));
+    const delims = s.delims.map(d => ({ all: d.all, s: this.strOfVal(this.val(d.e)) }));
+    let ptr = s.ptr ? Math.trunc(this.num(s.ptr)) - 1 : 0;
+    let count = 0, overflow = false;
+    for (const t of s.targets) {
+      if (ptr >= src.length) break;
+      let best = -1, bd = null;
+      for (const d of delims) {
+        if (!d.s.length) continue;
+        const k = src.indexOf(d.s, ptr);
+        if (k >= 0 && (best < 0 || k < best)) { best = k; bd = d; }
+      }
+      let part, dl = '';
+      if (best < 0) { part = src.slice(ptr); ptr = src.length; }
+      else {
+        part = src.slice(ptr, best); dl = bd.s; ptr = best + bd.s.length;
+        if (bd.all) while (src.startsWith(bd.s, ptr)) ptr += bd.s.length;
+      }
+      const r = this.resolve(t.r);
+      if (r.it.kind === '9' || r.it.kind === 'E') {
+        const tp = part.trim();
+        if (tp !== '' && !/^[+-]?\d*\.?\d+$/.test(tp)) throw E(s.line, `"${tp}" isn't a number, so it can't go into ${r.name} (PIC ${r.it.pic}).`);
+        this.moveTo(r, { s: tp }, {}, s.line);
+      } else this.moveTo(r, { s: part }, {}, s.line);
+      if (t.dlm) this.moveTo(this.resolve(t.dlm), { s: dl }, {}, s.line);
+      if (t.cnt) this.storeNum(this.resolve(t.cnt), part.length, false, false);
+      count++;
+    }
+    if (ptr < src.length && src.slice(ptr).trim() && s.targets.length) overflow = true;
+    if (s.ptr) this.storeNum(this.resolve(s.ptr), ptr + 1, false, false);
+    if (s.tally) { const tr = this.resolve(s.tally); this.storeNum(tr, this.refNum(tr) + count, false, false); }
+    return this.afterOverflow(s.ovf, overflow);
+  }
+  region(str, b) {
+    let a = 0, z = str.length;
+    if (b.AFTER) { const d = this.strOfVal(this.val(b.AFTER)); const k = str.indexOf(d); a = k < 0 ? str.length : k + d.length; }
+    if (b.BEFORE) { const d = this.strOfVal(this.val(b.BEFORE)); const k = str.indexOf(d, a); if (k >= 0) z = k; }
+    return [a, z];
+  }
+  doInspect(s) {
+    const r = this.resolve(s.target);
+    let str = this.refStr(r);
+    for (const t of s.tally) {
+      const [a, z] = this.region(str, t.b);
+      const sub = str.slice(a, z);
+      let n = 0;
+      if (t.kind === 'CHARACTERS') n = sub.length;
+      else {
+        const d = this.strOfVal(this.val(t.e));
+        if (t.kind === 'ALL') { let k = 0; while ((k = sub.indexOf(d, k)) >= 0) { n++; k += d.length; } }
+        else { let k = 0; while (sub.startsWith(d, k)) { n++; k += d.length; } }
+      }
+      const cr = this.resolve(t.cnt);
+      this.storeNum(cr, this.refNum(cr) + n, false, false);
+    }
+    for (const t of s.repl) {
+      const [a, z] = this.region(str, t.b);
+      let sub = str.slice(a, z);
+      const by = this.strOfVal(this.val(t.by));
+      if (t.kind === 'CHARACTERS') sub = fill(by[0] || ' ', sub.length);
+      else {
+        const d = this.strOfVal(this.val(t.e));
+        const rep = t.e.k === 'fig' ? fill(by, d.length) : by;
+        if (rep.length !== d.length) throw E(s.line, `INSPECT REPLACING needs the old and new text to be the same length ("${d}" vs "${rep}").`);
+        if (t.kind === 'ALL') sub = sub.split(d).join(rep);
+        else if (t.kind === 'FIRST') sub = sub.replace(d, rep);
+        else { let k = 0; while (sub.startsWith(d, k)) { sub = sub.slice(0, k) + rep + sub.slice(k + d.length); k += d.length; } }
+      }
+      str = str.slice(0, a) + sub + str.slice(z);
+    }
+    if (s.conv) {
+      const [a, z] = this.region(str, s.conv.b);
+      const f = this.strOfVal(this.val(s.conv.from)), to = this.strOfVal(this.val(s.conv.to));
+      if (f.length !== to.length) throw E(s.line, `INSPECT CONVERTING needs both lists to be the same length.`);
+      const sub = [...str.slice(a, z)].map(ch => { const k = f.indexOf(ch); return k >= 0 ? to[k] : ch; }).join('');
+      str = str.slice(0, a) + sub + str.slice(z);
+    }
+    if (s.repl.length || s.conv) this.setRefStr(r, str);
+  }
+}
+
+function detectFormat(code) {
+  const lines = code.replace(/\r/g, '').split('\n').filter(l => l.trim() && !l.trim().startsWith('*>'));
+  if (!lines.length) return 'fixed';
+  if (/>>\s*SOURCE\s+(FORMAT\s+)?(IS\s+)?FREE/i.test(code)) return 'free';
+  const fixedLike = lines.filter(l => /^[ 0-9]{6}[ *\/\-Dd]/.test(l.replace(/\t/g, '    '))).length;
+  return fixedLike / lines.length >= 0.8 ? 'fixed' : 'free';
+}
+
+G.COBOL = { compile, Runtime, CobolError, Halt, detectFormat, formatEdited, parsePic };
+})(typeof window !== 'undefined' ? window : globalThis);
+
+<\/script>
+<script>
+const LESSONS = [
+{
+  id: 'structure', title: 'Anatomy of a program',
+  body: `
+<p>Every COBOL program is split into up to four <b>divisions</b>, always in the same order:</p>
+<ul>
+<li><b>IDENTIFICATION</b> names the program.</li>
+<li><b>ENVIRONMENT</b> describes the computer and files (often left out).</li>
+<li><b>DATA</b> declares every variable before it is used.</li>
+<li><b>PROCEDURE</b> holds the instructions that actually run.</li>
+</ul>
+<p>COBOL was written for 80-column punch cards, and the columns still matter. Look at the ruler above the editor:</p>
+<ul>
+<li>Columns 1–6 hold sequence numbers. Leave them blank.</li>
+<li>Column 7 marks a line as a comment when it holds <code>*</code>.</li>
+<li><b>Area A</b> (columns 8–11) is where division, section and paragraph names start.</li>
+<li><b>Area B</b> (columns 12–72) is where statements go.</li>
+</ul>
+<p>Press <b>Tab</b> to jump to the next column stop. Every sentence ends with a period. <code>DISPLAY</code> prints a line and <code>STOP RUN</code> ends the program.</p>
+<p>Press <b>Run</b> (or Ctrl+Enter) to see the output appear in SYSOUT below.</p>`,
+  code:
+`       IDENTIFICATION DIVISION.
+       PROGRAM-ID. HELLO.
+      * A line with * in column 7 is a comment.
+       PROCEDURE DIVISION.
+           DISPLAY "Hello, COBOL!".
+           STOP RUN.
+`,
+  challenge: {
+    task: 'Add a second line of output that says <code>My first program.</code>',
+    expect: ['Hello, COBOL!', 'My first program.'],
+    hint: 'Copy the DISPLAY line and change the text. Keep it above STOP RUN.'
+  }
+},
+{
+  id: 'pictures', title: 'Data items and PIC',
+  body: `
+<p>Variables live in the <b>WORKING-STORAGE SECTION</b> of the DATA DIVISION. Each one starts with a <b>level number</b> (01 for a standalone item), a name, and a <b>PIC</b> (picture) clause that describes exactly what it can hold:</p>
+<table class="mini"><tbody>
+<tr><td><code>PIC X(10)</code></td><td>10 characters of any text</td></tr>
+<tr><td><code>PIC 9(3)</code></td><td>a whole number, 3 digits (0 to 999)</td></tr>
+<tr><td><code>PIC 9(4)V99</code></td><td>4 digits, then 2 decimal places</td></tr>
+<tr><td><code>PIC S9(3)</code></td><td>can be negative (S means signed)</td></tr>
+</tbody></table>
+<p>The <code>V</code> marks an <i>implied</i> decimal point. It is stored but never printed, which is why 19.95 shows as <code>001995</code>. Text is padded with spaces to its full size, and numbers are padded with leading zeros.</p>
+<p><code>VALUE</code> gives an item its starting value.</p>`,
+  code:
+`       IDENTIFICATION DIVISION.
+       PROGRAM-ID. PICTURES.
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+       01  WS-NAME        PIC X(10)    VALUE "ADA".
+       01  WS-AGE         PIC 9(3)     VALUE 36.
+       01  WS-PRICE       PIC 9(4)V99  VALUE 19.95.
+       PROCEDURE DIVISION.
+           DISPLAY "Name:  [" WS-NAME "]".
+           DISPLAY "Age:   " WS-AGE.
+           DISPLAY "Price: " WS-PRICE.
+           STOP RUN.
+`,
+  challenge: {
+    task: 'Declare <code>WS-YEAR</code> as a 4-digit number with the value 1959 (the year COBOL was designed) and display <code>Year: 1959</code>.',
+    expect: ['Year: 1959'],
+    hint: '01  WS-YEAR  PIC 9(4)  VALUE 1959.  then  DISPLAY "Year: " WS-YEAR.'
+  }
+},
+{
+  id: 'move', title: 'MOVE and truncation',
+  body: `
+<p><code>MOVE value TO name</code> copies a value into a data item. COBOL always fits the value to the receiving field's PIC, and that is where beginners get surprised:</p>
+<ul>
+<li><b>Text</b> is lined up on the left. Extra space is filled with blanks; anything too long is cut off on the right.</li>
+<li><b>Numbers</b> are lined up on the decimal point. Missing digits become zeros; extra digits are cut off on the <i>left</i>. Moving 1234 into a <code>PIC 99</code> field leaves 34, with no warning.</li>
+</ul>
+<p>One MOVE can fill several fields at once: <code>MOVE 0 TO WS-A WS-B</code>.</p>`,
+  code:
+`       IDENTIFICATION DIVISION.
+       PROGRAM-ID. MOVING.
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+       01  WS-SHORT    PIC X(4).
+       01  WS-LONG     PIC X(12).
+       01  WS-NUM      PIC 9(3).
+       01  WS-SMALL    PIC 99.
+       PROCEDURE DIVISION.
+           MOVE "COBOLISFUN" TO WS-SHORT.
+           MOVE "HI" TO WS-LONG.
+           MOVE 7 TO WS-NUM.
+           MOVE 1234 TO WS-SMALL.
+           DISPLAY "[" WS-SHORT "]".
+           DISPLAY "[" WS-LONG "]".
+           DISPLAY "WS-NUM:   " WS-NUM.
+           DISPLAY "WS-SMALL: " WS-SMALL.
+           STOP RUN.
+`,
+  challenge: {
+    task: 'Move the text <code>MAINFRAME</code> into <code>WS-SHORT</code> and display it in brackets. Predict the result first.',
+    expect: ['[MAIN]'],
+    hint: 'MOVE "MAINFRAME" TO WS-SHORT. then DISPLAY "[" WS-SHORT "]".'
+  }
+},
+{
+  id: 'arithmetic', title: 'Arithmetic',
+  body: `
+<p>COBOL has English-style verbs for maths, plus <code>COMPUTE</code> for formulas:</p>
+<table class="mini"><tbody>
+<tr><td><code>ADD A TO B</code></td><td>B = B + A</td></tr>
+<tr><td><code>SUBTRACT A FROM B</code></td><td>B = B − A</td></tr>
+<tr><td><code>MULTIPLY A BY B</code></td><td>B = A × B</td></tr>
+<tr><td><code>DIVIDE A INTO B</code></td><td>B = B ÷ A</td></tr>
+<tr><td><code>COMPUTE C = (A + B) / 2</code></td><td>any formula; <code>**</code> is a power</td></tr>
+</tbody></table>
+<p>Add <code>GIVING C</code> to put the answer somewhere new instead of changing B. <code>DIVIDE ... REMAINDER R</code> keeps what is left over.</p>
+<p>Results are <b>cut off</b>, not rounded, unless you write <code>ROUNDED</code> after the receiving field. The last field here uses an <b>edited picture</b> (<code>ZZZ9.99</code>) to print a real decimal point; lesson 11 covers those.</p>`,
+  code:
+`       IDENTIFICATION DIVISION.
+       PROGRAM-ID. MATHS.
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+       01  WS-A        PIC 9(3)     VALUE 20.
+       01  WS-B        PIC 9(3)     VALUE 6.
+       01  WS-RESULT   PIC 9(4).
+       01  WS-REM      PIC 9(3).
+       01  WS-AVG      PIC 9(3)V99.
+       01  WS-SHOW     PIC ZZZ9.99.
+       PROCEDURE DIVISION.
+           ADD WS-A TO WS-B GIVING WS-RESULT.
+           DISPLAY "20 + 6  = " WS-RESULT.
+           SUBTRACT WS-B FROM WS-A GIVING WS-RESULT.
+           DISPLAY "20 - 6  = " WS-RESULT.
+           MULTIPLY WS-A BY WS-B GIVING WS-RESULT.
+           DISPLAY "20 x 6  = " WS-RESULT.
+           DIVIDE WS-A BY WS-B GIVING WS-RESULT REMAINDER WS-REM.
+           DISPLAY "20 / 6  = " WS-RESULT " remainder " WS-REM.
+           COMPUTE WS-AVG ROUNDED = (WS-A + WS-B) / 3.
+           MOVE WS-AVG TO WS-SHOW.
+           DISPLAY "26 / 3  = " WS-SHOW.
+           STOP RUN.
+`,
+  challenge: {
+    task: 'Work out a 15% tip on a bill of 80.00 with <code>COMPUTE</code>, and display <code>Tip: 12.00</code>. Use a <code>PIC ZZ9.99</code> field for the display.',
+    expect: ['Tip: 12.00'],
+    hint: 'Declare WS-BILL PIC 9(3)V99 VALUE 80, WS-TIP PIC 9(3)V99 and WS-TIP-OUT PIC ZZ9.99. COMPUTE WS-TIP = WS-BILL * 0.15, MOVE it to WS-TIP-OUT, then DISPLAY "Tip: " WS-TIP-OUT.'
+  }
+},
+{
+  id: 'accept', title: 'Reading input with ACCEPT',
+  body: `
+<p><code>ACCEPT name</code> pauses the program and waits for the user to type a line. In this workbench a prompt appears in SYSOUT; type your answer and press <b>Enter</b>.</p>
+<p>The answer is moved into the field with the usual MOVE rules, so a <code>PIC X(20)</code> field gets padded with spaces. <code>FUNCTION TRIM</code> removes those spaces when you display it.</p>
+<p>ACCEPT can also read the system clock: <code>ACCEPT WS-TODAY FROM DATE YYYYMMDD</code>.</p>`,
+  code:
+`       IDENTIFICATION DIVISION.
+       PROGRAM-ID. GREETER.
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+       01  WS-NAME     PIC X(20).
+       01  WS-BORN     PIC 9(4).
+       01  WS-AGE      PIC 9(3).
+       PROCEDURE DIVISION.
+           DISPLAY "What is your name?".
+           ACCEPT WS-NAME.
+           DISPLAY "What year were you born?".
+           ACCEPT WS-BORN.
+           COMPUTE WS-AGE = 2026 - WS-BORN.
+           DISPLAY "Hello, " FUNCTION TRIM(WS-NAME) "!".
+           DISPLAY "You turn " WS-AGE " this year.".
+           STOP RUN.
+`,
+  challenge: {
+    task: 'Write a program that ACCEPTs two numbers, adds them, and displays <code>Sum: </code> followed by the total in a <code>PIC 9(3)</code> field. The check types 12 and 30 for you.',
+    expect: ['Sum: 042'],
+    inputs: ['12', '30'],
+    hint: 'Three fields: WS-X PIC 9(3), WS-Y PIC 9(3), WS-SUM PIC 9(3). ACCEPT WS-X. ACCEPT WS-Y. ADD WS-X WS-Y GIVING WS-SUM.'
+  }
+},
+{
+  id: 'if', title: 'IF and condition names',
+  body: `
+<p><code>IF condition ... ELSE ... END-IF</code> chooses between two paths. Comparisons can be symbols (<code>= &gt; &lt; &gt;= &lt;=</code>) or words (<code>GREATER THAN</code>, <code>NOT EQUAL TO</code>), joined with <code>AND</code>, <code>OR</code> and <code>NOT</code>.</p>
+<p>Always close an IF with <code>END-IF</code>. A period also ends an IF, which is a classic source of bugs when one sneaks in mid-block.</p>
+<p><b>Level 88 condition names</b> give a value a meaningful name. Under <code>WS-STATUS</code> below, <code>IS-ACTIVE</code> is true whenever WS-STATUS holds "A", so you can write <code>IF IS-ACTIVE</code>. <code>SET IS-CLOSED TO TRUE</code> moves "C" into WS-STATUS for you. Ranges work too: <code>VALUE 90 THRU 100</code>.</p>`,
+  code:
+`       IDENTIFICATION DIVISION.
+       PROGRAM-ID. DECIDE.
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+       01  WS-SCORE    PIC 9(3)  VALUE 82.
+       01  WS-STATUS   PIC X     VALUE "A".
+           88  IS-ACTIVE         VALUE "A".
+           88  IS-CLOSED         VALUE "C".
+       PROCEDURE DIVISION.
+           IF WS-SCORE >= 50
+               DISPLAY "Pass"
+           ELSE
+               DISPLAY "Fail"
+           END-IF.
+           IF WS-SCORE > 80 AND WS-SCORE NOT > 90
+               DISPLAY "Grade B"
+           END-IF.
+           IF IS-ACTIVE
+               DISPLAY "Account is active"
+           END-IF.
+           SET IS-CLOSED TO TRUE.
+           DISPLAY "Status is now " WS-STATUS.
+           STOP RUN.
+`,
+  challenge: {
+    task: 'Add an 88-level <code>IS-HONOURS</code> under <code>WS-SCORE</code> for scores 90 through 100. Change the score to 95 and display <code>Honours</code> when it is true.',
+    expect: ['Honours'],
+    hint: 'Under WS-SCORE add: 88  IS-HONOURS  VALUE 90 THRU 100.  Then IF IS-HONOURS DISPLAY "Honours" END-IF.'
+  }
+},
+{
+  id: 'evaluate', title: 'EVALUATE',
+  body: `
+<p><code>EVALUATE</code> is COBOL's tidy version of a long chain of IFs. It compares one subject against a list of <code>WHEN</code> values and runs the first match. <code>WHEN OTHER</code> catches everything else.</p>
+<ul>
+<li><code>WHEN 1 THRU 5</code> matches a range.</li>
+<li>Two WHENs in a row share the same statements.</li>
+<li><code>EVALUATE TRUE</code> lets each WHEN be a full condition, such as <code>WHEN WS-TEMP &lt; 0</code>.</li>
+</ul>`,
+  code:
+`       IDENTIFICATION DIVISION.
+       PROGRAM-ID. CHOOSER.
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+       01  WS-DAY      PIC 9      VALUE 6.
+       01  WS-TEMP     PIC S9(3)  VALUE -4.
+       PROCEDURE DIVISION.
+           EVALUATE WS-DAY
+               WHEN 1 THRU 5
+                   DISPLAY "Weekday"
+               WHEN 6
+               WHEN 7
+                   DISPLAY "Weekend"
+               WHEN OTHER
+                   DISPLAY "Not a day"
+           END-EVALUATE.
+           EVALUATE TRUE
+               WHEN WS-TEMP < 0
+                   DISPLAY "Freezing"
+               WHEN WS-TEMP < 20
+                   DISPLAY "Cool"
+               WHEN OTHER
+                   DISPLAY "Warm"
+           END-EVALUATE.
+           STOP RUN.
+`,
+  challenge: {
+    task: 'Set <code>WS-TEMP</code> to 35. Add a band so that below 30 shows <code>Warm</code> and anything hotter shows <code>Hot</code>.',
+    expect: ['Hot'],
+    hint: 'Change WHEN OTHER DISPLAY "Warm" into WHEN WS-TEMP < 30 DISPLAY "Warm", then add WHEN OTHER DISPLAY "Hot".'
+  }
+},
+{
+  id: 'perform', title: 'Paragraphs and PERFORM',
+  body: `
+<p>The PROCEDURE DIVISION can be split into <b>paragraphs</b>: a name in Area A followed by a period. <code>PERFORM name</code> jumps to a paragraph, runs it, then comes back. This is how COBOL organises code into reusable steps.</p>
+<ul>
+<li><code>PERFORM name 3 TIMES</code> repeats it.</li>
+<li><code>PERFORM name UNTIL condition</code> repeats until the condition is true. The test happens <i>before</i> each pass.</li>
+<li><code>PERFORM 3 TIMES ... END-PERFORM</code> is an <b>inline</b> loop with the statements written right there.</li>
+</ul>
+<p>Remember <code>STOP RUN</code> at the end of your main paragraph. Without it, COBOL keeps going and falls into the next paragraph.</p>`,
+  code:
+`       IDENTIFICATION DIVISION.
+       PROGRAM-ID. LOOPS.
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+       01  WS-COUNT    PIC 99  VALUE 0.
+       PROCEDURE DIVISION.
+       MAIN-PARA.
+           PERFORM SAY-HELLO.
+           PERFORM SAY-HELLO 2 TIMES.
+           PERFORM COUNT-UP UNTIL WS-COUNT = 3.
+           PERFORM 2 TIMES
+               DISPLAY "Inline loop"
+           END-PERFORM.
+           STOP RUN.
+       SAY-HELLO.
+           DISPLAY "Hello from a paragraph".
+       COUNT-UP.
+           ADD 1 TO WS-COUNT.
+           DISPLAY "Count: " WS-COUNT.
+`,
+  challenge: {
+    task: 'Write a new paragraph called <code>TICK</code> that displays <code>Tick</code>, and perform it 4 times from MAIN-PARA.',
+    expect: ['Tick', 'Tick', 'Tick', 'Tick'],
+    hint: 'Add a paragraph at the bottom: TICK. then DISPLAY "Tick". In MAIN-PARA, before STOP RUN: PERFORM TICK 4 TIMES.'
+  }
+},
+{
+  id: 'tables', title: 'Tables and PERFORM VARYING',
+  body: `
+<p>A <b>table</b> (COBOL's word for an array) is declared with <code>OCCURS</code>. Entries are numbered from <b>1</b>, not 0, and you pick one with a subscript in brackets: <code>WS-SALE(3)</code>.</p>
+<p><code>PERFORM VARYING WS-I FROM 1 BY 1 UNTIL WS-I &gt; 5</code> is COBOL's counting loop. It sets WS-I to 1, runs the body, adds 1, and stops once the condition is true.</p>
+<p>A whole group can repeat too. Below, each <code>WS-CREW</code> entry holds a name and a role, so <code>WS-C-NAME(2)</code> is the second person's name.</p>`,
+  code:
+`       IDENTIFICATION DIVISION.
+       PROGRAM-ID. TABLES.
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+       01  WS-I            PIC 99.
+       01  WS-TOTAL        PIC 9(5)  VALUE 0.
+       01  WS-SALES.
+           05  WS-SALE     PIC 9(4)  OCCURS 5 TIMES.
+       01  WS-TEAM.
+           05  WS-CREW     OCCURS 3 TIMES.
+               10  WS-C-NAME   PIC X(8).
+               10  WS-C-ROLE   PIC X(10).
+       PROCEDURE DIVISION.
+           MOVE 120 TO WS-SALE(1).
+           MOVE 340 TO WS-SALE(2).
+           MOVE 95  TO WS-SALE(3).
+           MOVE 450 TO WS-SALE(4).
+           MOVE 210 TO WS-SALE(5).
+           PERFORM VARYING WS-I FROM 1 BY 1 UNTIL WS-I > 5
+               DISPLAY "Month " WS-I ": " WS-SALE(WS-I)
+               ADD WS-SALE(WS-I) TO WS-TOTAL
+           END-PERFORM.
+           DISPLAY "Total: " WS-TOTAL.
+           MOVE "GRACE"  TO WS-C-NAME(1).
+           MOVE "ADMIRAL" TO WS-C-ROLE(1).
+           MOVE "JEAN"   TO WS-C-NAME(2).
+           MOVE "ANALYST" TO WS-C-ROLE(2).
+           MOVE "MARY"   TO WS-C-NAME(3).
+           MOVE "ENGINEER" TO WS-C-ROLE(3).
+           PERFORM VARYING WS-I FROM 1 BY 1 UNTIL WS-I > 3
+               DISPLAY WS-C-NAME(WS-I) WS-C-ROLE(WS-I)
+           END-PERFORM.
+           STOP RUN.
+`,
+  challenge: {
+    task: 'Add a field <code>WS-MAX PIC 9(4)</code> and use the sales loop to find the biggest sale. Display <code>Max: 0450</code>.',
+    expect: ['Max: 0450'],
+    hint: 'Inside the first loop: IF WS-SALE(WS-I) > WS-MAX MOVE WS-SALE(WS-I) TO WS-MAX END-IF. After the loop: DISPLAY "Max: " WS-MAX.'
+  }
+},
+{
+  id: 'strings', title: 'Working with text',
+  body: `
+<p>COBOL has four tools for text:</p>
+<ul>
+<li><code>STRING</code> joins pieces together. <code>DELIMITED BY SPACE</code> takes each piece up to its first space; <code>DELIMITED BY SIZE</code> takes all of it.</li>
+<li><code>UNSTRING</code> splits text apart at a delimiter, such as the commas in a CSV line.</li>
+<li><code>INSPECT</code> counts (<code>TALLYING</code>) or swaps (<code>REPLACING</code>) characters.</li>
+<li><b>Reference modification</b> takes a slice: <code>WS-FULL(1:5)</code> means 5 characters starting at position 1.</li>
+</ul>`,
+  code:
+`       IDENTIFICATION DIVISION.
+       PROGRAM-ID. TEXTWORK.
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+       01  WS-FIRST    PIC X(10)  VALUE "GRACE".
+       01  WS-LAST     PIC X(10)  VALUE "HOPPER".
+       01  WS-FULL     PIC X(25).
+       01  WS-CSV      PIC X(30)  VALUE "COBOL,1959,CODASYL".
+       01  WS-LANG     PIC X(10).
+       01  WS-YEAR     PIC X(4).
+       01  WS-ORG      PIC X(10).
+       01  WS-COUNT    PIC 99     VALUE 0.
+       PROCEDURE DIVISION.
+           STRING WS-FIRST DELIMITED BY SPACE
+                  " "      DELIMITED BY SIZE
+                  WS-LAST  DELIMITED BY SPACE
+                  INTO WS-FULL
+           END-STRING.
+           DISPLAY "Full name: " WS-FULL.
+           UNSTRING WS-CSV DELIMITED BY ","
+               INTO WS-LANG WS-YEAR WS-ORG
+           END-UNSTRING.
+           DISPLAY "Language: " WS-LANG.
+           DISPLAY "Year:     " WS-YEAR.
+           DISPLAY "Group:    " WS-ORG.
+           INSPECT WS-FULL TALLYING WS-COUNT FOR ALL "R".
+           DISPLAY "R appears " WS-COUNT " times".
+           DISPLAY "First 5:  " WS-FULL(1:5).
+           INSPECT WS-FULL REPLACING ALL "P" BY "*".
+           DISPLAY "Replaced: " WS-FULL.
+           STOP RUN.
+`,
+  challenge: {
+    task: 'Display <code>Initials: GH</code> using reference modification on <code>WS-FIRST</code> and <code>WS-LAST</code>.',
+    expect: ['Initials: GH'],
+    hint: 'DISPLAY "Initials: " WS-FIRST(1:1) WS-LAST(1:1).'
+  }
+},
+{
+  id: 'editing', title: 'Edited pictures for reports',
+  body: `
+<p>COBOL was built to print business reports, so it formats numbers through the PIC itself. An <b>edited picture</b> turns a plain number into something a person can read:</p>
+<table class="mini"><tbody>
+<tr><td><code>Z</code></td><td>a digit, but a leading zero prints as a space</td></tr>
+<tr><td><code>, .</code></td><td>insert a comma or a real decimal point</td></tr>
+<tr><td><code>$$$9</code></td><td>a floating dollar sign that sits next to the first digit</td></tr>
+<tr><td><code>*</code></td><td>cheque protection: leading zeros print as stars</td></tr>
+<tr><td><code>- CR</code></td><td>show a minus sign, or CR, only when negative</td></tr>
+</tbody></table>
+<p>You MOVE a number into an edited field and then display it. Edited fields are for output only; you can't do arithmetic on them.</p>`,
+  code:
+`       IDENTIFICATION DIVISION.
+       PROGRAM-ID. REPORTS.
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+       01  WS-AMOUNT   PIC 9(6)V99   VALUE 1234.5.
+       01  WS-REFUND   PIC S9(4)V99  VALUE -42.75.
+       01  WS-OUT-1    PIC ZZZ,ZZ9.99.
+       01  WS-OUT-2    PIC $$$,$$9.99.
+       01  WS-OUT-3    PIC ***,**9.99.
+       01  WS-OUT-4    PIC -,--9.99.
+       01  WS-OUT-5    PIC Z,ZZ9.99CR.
+       PROCEDURE DIVISION.
+           DISPLAY "Raw amount:   " WS-AMOUNT.
+           MOVE WS-AMOUNT TO WS-OUT-1.
+           DISPLAY "ZZZ,ZZ9.99    [" WS-OUT-1 "]".
+           MOVE WS-AMOUNT TO WS-OUT-2.
+           DISPLAY "$$$,$$9.99    [" WS-OUT-2 "]".
+           MOVE WS-AMOUNT TO WS-OUT-3.
+           DISPLAY "***,**9.99    [" WS-OUT-3 "]".
+           DISPLAY "Raw refund:   " WS-REFUND.
+           MOVE WS-REFUND TO WS-OUT-4.
+           DISPLAY "-,--9.99      [" WS-OUT-4 "]".
+           MOVE WS-REFUND TO WS-OUT-5.
+           DISPLAY "Z,ZZ9.99CR    [" WS-OUT-5 "]".
+           STOP RUN.
+`,
+  challenge: {
+    task: 'Show 9,876,543.21 as <code>Total: $9,876,543.21</code>. You need a source field big enough for 7 digits plus 2 decimals, and an edited field with floating dollar signs.',
+    expect: ['Total: $9,876,543.21'],
+    hint: 'WS-BIG PIC 9(7)V99 VALUE 9876543.21 and WS-BIG-OUT PIC $$,$$$,$$9.99. MOVE WS-BIG TO WS-BIG-OUT, then DISPLAY "Total: " WS-BIG-OUT.'
+  }
+},
+{
+  id: 'functions', title: 'Intrinsic functions',
+  body: `
+<p>COBOL has built-in functions, written as <code>FUNCTION NAME(arguments)</code>. Arguments are separated by spaces or commas. Some useful ones:</p>
+<table class="mini"><tbody>
+<tr><td><code>UPPER-CASE LOWER-CASE</code></td><td>change letter case</td></tr>
+<tr><td><code>TRIM REVERSE LENGTH</code></td><td>tidy, flip or measure text</td></tr>
+<tr><td><code>SQRT MOD MAX MIN SUM</code></td><td>maths helpers</td></tr>
+<tr><td><code>CURRENT-DATE</code></td><td>21 characters: YYYYMMDDHHMMSS…</td></tr>
+</tbody></table>
+<p>Functions can be nested, as in <code>FUNCTION TRIM(FUNCTION UPPER-CASE(WS-TEXT))</code>, and sliced like any text: <code>FUNCTION CURRENT-DATE(1:4)</code> is the year.</p>`,
+  code:
+`       IDENTIFICATION DIVISION.
+       PROGRAM-ID. FUNCS.
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+       01  WS-TEXT     PIC X(20)    VALUE "  mixed Case text".
+       01  WS-NUM      PIC 9(3)     VALUE 144.
+       01  WS-ROOT     PIC 9(3)V99.
+       01  WS-SHOW     PIC ZZ9.99.
+       01  WS-NOW      PIC X(21).
+       PROCEDURE DIVISION.
+           DISPLAY "[" FUNCTION UPPER-CASE(WS-TEXT) "]".
+           DISPLAY "[" FUNCTION TRIM(WS-TEXT) "]".
+           DISPLAY "Length: " FUNCTION LENGTH(WS-TEXT).
+           COMPUTE WS-ROOT = FUNCTION SQRT(WS-NUM).
+           MOVE WS-ROOT TO WS-SHOW.
+           DISPLAY "Square root of 144: " WS-SHOW.
+           DISPLAY "Max of 3 9 4: " FUNCTION MAX(3 9 4).
+           DISPLAY "17 mod 5: " FUNCTION MOD(17 5).
+           MOVE FUNCTION CURRENT-DATE TO WS-NOW.
+           DISPLAY "Today: " WS-NOW(1:4) "-" WS-NOW(5:2) "-"
+                   WS-NOW(7:2).
+           STOP RUN.
+`,
+  challenge: {
+    task: 'Display the word cobol in capitals and backwards, so the output line is <code>LOBOC</code>.',
+    expect: ['LOBOC'],
+    hint: 'DISPLAY FUNCTION REVERSE(FUNCTION UPPER-CASE("cobol")).'
+  }
+},
+{
+  id: 'capstone', title: 'Project: loan schedule',
+  body: `
+<p>Time to put it together. This program works out the monthly payment on a loan with the standard amortisation formula, then prints the first year of the schedule as a report.</p>
+<p>It uses everything so far: <code>V</code> for implied decimals, <code>COMPUTE ROUNDED</code> with <code>**</code>, a paragraph performed with <code>VARYING</code>, and edited pictures with floating dollar signs to line up the columns.</p>
+<p>Notice how much precision the rate needs. <code>PIC 9V9(8)</code> keeps 8 decimal places, because a monthly rate like 0.00416666 loses accuracy fast if it's cut short.</p>`,
+  code:
+`       IDENTIFICATION DIVISION.
+       PROGRAM-ID. LOANSKED.
+      * Monthly payment and first-year schedule for a loan.
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+       01  WS-PRINCIPAL    PIC 9(7)V99  VALUE 300000.
+       01  WS-RATE         PIC 9V9(4)   VALUE 0.0500.
+       01  WS-YEARS        PIC 99       VALUE 25.
+       01  WS-MONTHS       PIC 999.
+       01  WS-R            PIC 9V9(8).
+       01  WS-PAYMENT      PIC 9(6)V99.
+       01  WS-BALANCE      PIC 9(7)V99.
+       01  WS-INTEREST     PIC 9(6)V99.
+       01  WS-TOTAL-INT    PIC 9(7)V99  VALUE 0.
+       01  WS-MONTH        PIC 999.
+       01  WS-D-MONTH      PIC ZZ9.
+       01  WS-D-MONEY      PIC $$$,$$9.99.
+       01  WS-D-BAL        PIC $$,$$$,$$9.99.
+       PROCEDURE DIVISION.
+       MAIN-PARA.
+           COMPUTE WS-MONTHS = WS-YEARS * 12.
+           COMPUTE WS-R = WS-RATE / 12.
+           COMPUTE WS-PAYMENT ROUNDED =
+               WS-PRINCIPAL * WS-R / (1 - (1 + WS-R) ** (- WS-MONTHS)).
+           MOVE WS-PAYMENT TO WS-D-MONEY.
+           DISPLAY "Monthly payment: " WS-D-MONEY.
+           DISPLAY " ".
+           DISPLAY "Month    Interest        Balance".
+           MOVE WS-PRINCIPAL TO WS-BALANCE.
+           PERFORM SHOW-MONTH
+               VARYING WS-MONTH FROM 1 BY 1 UNTIL WS-MONTH > 12.
+           MOVE WS-TOTAL-INT TO WS-D-BAL.
+           DISPLAY "Year 1 interest: " WS-D-BAL.
+           STOP RUN.
+       SHOW-MONTH.
+           COMPUTE WS-INTEREST ROUNDED = WS-BALANCE * WS-R.
+           ADD WS-INTEREST TO WS-TOTAL-INT.
+           COMPUTE WS-BALANCE =
+               WS-BALANCE - (WS-PAYMENT - WS-INTEREST).
+           MOVE WS-MONTH TO WS-D-MONTH.
+           MOVE WS-INTEREST TO WS-D-MONEY.
+           MOVE WS-BALANCE TO WS-D-BAL.
+           DISPLAY "  " WS-D-MONTH "  " WS-D-MONEY "  " WS-D-BAL.
+`,
+  challenge: {
+    task: 'Change the loan to a 20-year term and run it again. Check my answer will tell you if the new monthly payment is right.',
+    expect: ['Monthly payment: $1,979.87'],
+    hint: 'Only one VALUE needs to change: WS-YEARS.'
+  }
+}
+];
+
+<\/script>
+<script>
+(() => {
+"use strict";
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('cobol-workbench:' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem('cobol-workbench:' + k, JSON.stringify(v)); } catch (e) { /* storage unavailable */ } }
+};
+
+const code = $('code'), hl = $('hl'), hlTxt = $('hlTxt'), gutter = $('gutter'), ruler = $('ruler'), out = $('out');
+const work = $('work');
+let fmt = 'fixed';
+let doc = null;
+let drafts = store.get('drafts', {});
+let files = store.get('files', {});
+let passed = store.get('passed', {});
+let lessonIdx = 0;
+let runtime = null, running = false, pendingInput = null;
+let errLine = 0;
+
+const TEMPLATE = name => `       IDENTIFICATION DIVISION.
+       PROGRAM-ID. ${name}.
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+       01  WS-MESSAGE      PIC X(30)  VALUE "Hello from my program".
+       PROCEDURE DIVISION.
+       MAIN-PARA.
+           DISPLAY WS-MESSAGE.
+           STOP RUN.
+`;
+
+/* ---------------- toast ---------------- */
+let toastT;
+function toast(msg) {
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+/* ---------------- theme ---------------- */
+const THEMES = ['auto', 'light', 'dark'];
+let theme = store.get('theme', 'auto');
+function applyTheme() {
+  if (theme === 'auto') delete document.documentElement.dataset.theme;
+  else document.documentElement.dataset.theme = theme;
+  $('themeLbl').textContent = theme === 'auto' ? 'Auto' : theme === 'light' ? 'Light' : 'Dark';
+}
+$('btnTheme').onclick = () => { theme = THEMES[(THEMES.indexOf(theme) + 1) % 3]; store.set('theme', theme); applyTheme(); };
+applyTheme();
+
+/* ---------------- syntax highlighting ---------------- */
+const KW = new Set(`ACCEPT ADD ADVANCING AFTER ALL ALSO AND ANY ARE ASCENDING AT BEFORE BINARY BLANK BY CHARACTERS COMP COMP-3 COMPUTE CONTINUE CONVERTING CORRESPONDING COUNT CYCLE DELIMITED DELIMITER DEPENDING DESCENDING DISPLAY DIVIDE DOWN ELSE END-ACCEPT END-ADD END-COMPUTE END-DISPLAY END-DIVIDE END-EVALUATE END-IF END-INSPECT END-MULTIPLY END-PERFORM END-STRING END-SUBTRACT END-UNSTRING EQUAL ERROR EVALUATE EXIT FALSE FILLER FIRST FOR FROM FUNCTION GIVING GO GOBACK GREATER IF IN INDEXED INITIAL INITIALIZE INSPECT INTO IS JUST JUSTIFIED KEY LEADING LESS MOVE MULTIPLY NEXT NO NOT NUMERIC ALPHABETIC NEGATIVE POSITIVE OCCURS OF ON OR OTHER OVERFLOW PARAGRAPH PERFORM PIC PICTURE POINTER PROGRAM REDEFINES REMAINDER REPLACING ROUNDED RUN SENTENCE SET SIGN SIZE STOP STRING SUBTRACT TALLYING TEST THAN THEN THROUGH THRU TIMES TO TRAILING TRUE UNSTRING UNTIL UP UPON USAGE VALUE VALUES VARYING WHEN WITH SPACE SPACES ZERO ZEROS ZEROES HIGH-VALUE HIGH-VALUES LOW-VALUE LOW-VALUES QUOTE QUOTES`.split(/\s+/));
+const DIVW = new Set('IDENTIFICATION ID ENVIRONMENT DATA PROCEDURE DIVISION SECTION WORKING-STORAGE LOCAL-STORAGE FILE LINKAGE CONFIGURATION INPUT-OUTPUT PROGRAM-ID AUTHOR DATE-WRITTEN INSTALLATION'.split(' '));
+function hlCode(s) {
+  const head = /^(\s*)([A-Za-z0-9][A-Za-z0-9-]*)(\s*\.\s*)$/.exec(s);
+  if (head && !KW.has(head[2].toUpperCase()) && !DIVW.has(head[2].toUpperCase()) && !/^\d+$/.test(head[2])) {
+    return esc(head[1]) + `<span class="tk-para">${esc(head[2])}</span>` + esc(head[3]);
+  }
+  const re = /("(?:[^"]|"")*"?|'(?:[^']|'')*'?)|(\*>.*$)|([A-Za-z0-9][A-Za-z0-9-]*)|(\s+)|([^\sA-Za-z0-9"'])/g;
+  let o = '', m, picNext = false;
+  while ((m = re.exec(s))) {
+    const u = m[3] ? m[3].toUpperCase() : '';
+    if (picNext && !m[4] && u !== 'IS') {
+      let p = /^\S*/.exec(s.slice(m.index))[0];
+      if (p.endsWith('.')) p = p.slice(0, -1);
+      o += `<span class="tk-pic">${esc(p)}</span>`;
+      re.lastIndex = m.index + p.length; picNext = false; continue;
+    }
+    if (m[1]) o += `<span class="tk-str">${esc(m[1])}</span>`;
+    else if (m[2]) o += `<span class="tk-com">${esc(m[2])}</span>`;
+    else if (m[3]) {
+      if (/^\d+$/.test(m[3])) o += `<span class="tk-num">${m[3]}</span>`;
+      else if (DIVW.has(u)) o += `<span class="tk-div">${esc(m[3])}</span>`;
+      else if (KW.has(u)) o += `<span class="tk-kw">${esc(m[3])}</span>`;
+      else o += esc(m[3]);
+      if (u === 'PIC' || u === 'PICTURE') picNext = true;
+    } else o += esc(m[0]);
+  }
+  return o;
+}
+function hlLine(line) {
+  line = line.replace(/\t/g, '    ');
+  if (/^\s*>>/.test(line)) return `<span class="tk-div">${esc(line)}</span>`;
+  if (fmt === 'fixed') {
+    const seq = line.slice(0, 6), ind = line.slice(6, 7), rest = line.slice(7, 72), tail = line.slice(72);
+    let h = seq ? `<span class="tk-seq">${esc(seq)}</span>` : '';
+    if (ind === '*' || ind === '/') return h + `<span class="tk-com">${esc(line.slice(6))}</span>`;
+    h += (ind === ' ' || ind === '') ? ind : `<span class="tk-err">${esc(ind)}</span>`;
+    return h + hlCode(rest) + (tail ? `<span class="tk-seq tk-err">${esc(tail)}</span>` : '');
+  }
+  if (/^\s*\*>/.test(line)) return `<span class="tk-com">${esc(line)}</span>`;
+  return hlCode(line);
+}
+let lastLineCount = -1, lastErr = -1, rafId = 0;
+function render() {
+  const lines = code.value.split('\n');
+  hlTxt.innerHTML = lines.map(hlLine).join('\n') + '\n ';
+  if (lines.length !== lastLineCount || errLine !== lastErr) {
+    let g = '';
+    for (let i = 1; i <= lines.length; i++) g += i === errLine ? `<div class="err">${i}</div>` : `<div>${i}</div>`;
+    gutter.innerHTML = g;
+    lastLineCount = lines.length; lastErr = errLine;
+  }
+}
+function scheduleRender() { cancelAnimationFrame(rafId); rafId = requestAnimationFrame(render); }
+function syncScroll() {
+  const x = code.scrollLeft, y = code.scrollTop;
+  hl.style.transform = `translate(${-x}px, ${-y}px)`;
+  gutter.style.transform = `translateY(${-y}px)`;
+  ruler.style.transform = `translateX(${-x}px)`;
+}
+code.addEventListener('scroll', syncScroll);
+
+/* ---------------- ruler + status ---------------- */
+let rulerCol = 0;
+function buildRuler(active) {
+  let h = '';
+  for (let c = 1; c <= 80; c++) {
+    let ch = c % 10 === 0 ? String((c / 10) % 10) : c % 5 === 0 ? '+' : '-', cls = '';
+    if (fmt === 'fixed') {
+      if (c === 7) ch = '*';
+      if (c === 8) { ch = 'A'; cls = 'm'; }
+      if (c === 12) { ch = 'B'; cls = 'm'; }
+      if (c === 72) { ch = '|'; cls = 'r'; }
+    }
+    if (c === active) cls = 'on';
+    h += cls ? `<span class="${cls}">${ch}</span>` : ch;
+  }
+  ruler.innerHTML = h;
+  rulerCol = active;
+}
+function areaName(col) {
+  if (fmt !== 'fixed') return 'Free format';
+  if (col <= 6) return 'Sequence area';
+  if (col === 7) return 'Indicator (column 7)';
+  if (col <= 11) return 'Area A';
+  if (col <= 72) return 'Area B';
+  return 'Ignored (past 72)';
+}
+function updateStatus() {
+  const a = code.selectionStart, v = code.value;
+  const ls = v.lastIndexOf('\n', a - 1) + 1;
+  const ln = v.slice(0, a).split('\n').length;
+  const col = a - ls + 1;
+  $('status').innerHTML = `Ln ${ln}, Col ${col} · <b>${areaName(col)}</b>`;
+  if (col !== rulerCol) buildRuler(col);
+}
+['keyup', 'click', 'select', 'focus'].forEach(ev => code.addEventListener(ev, updateStatus));
+document.addEventListener('selectionchange', () => { if (document.activeElement === code) updateStatus(); });
+
+/* ---------------- editing keys ---------------- */
+function insertText(t) {
+  let ok = false;
+  try { ok = document.execCommand('insertText', false, t); } catch (e) { ok = false; }
+  if (!ok) {
+    code.setRangeText(t, code.selectionStart, code.selectionEnd, 'end');
+    code.dispatchEvent(new Event('input'));
+  }
+}
+function stops() {
+  if (fmt === 'fixed') { const s = [7, 11]; for (let c = 15; c < 76; c += 4) s.push(c); return s; }
+  const s = []; for (let c = 4; c < 120; c += 4) s.push(c); return s;
+}
+code.addEventListener('keydown', e => {
+  const mod = e.ctrlKey || e.metaKey;
+  if (mod && e.key === 'Enter') { e.preventDefault(); run(); return; }
+  if (mod && (e.key === 's' || e.key === 'S')) { e.preventDefault(); saveCbl(); return; }
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const a = code.selectionStart, b = code.selectionEnd, v = code.value;
+    const ls = v.lastIndexOf('\n', a - 1) + 1;
+    if (v.slice(a, b).includes('\n')) {
+      const block = v.slice(ls, b);
+      const nb = block.split('\n').map(l => e.shiftKey ? l.replace(/^ {1,4}/, '') : '    ' + l).join('\n');
+      code.setSelectionRange(ls, b); insertText(nb); code.setSelectionRange(ls, ls + nb.length);
+      return;
+    }
+    const col = a - ls;
+    if (e.shiftKey) {
+      const prev = [0, ...stops()].filter(s => s < col).pop() || 0;
+      const seg = v.slice(ls + prev, a);
+      if (seg && /^ +$/.test(seg)) { code.setSelectionRange(ls + prev, a); insertText(''); }
+      return;
+    }
+    const next = stops().find(s => s > col) ?? col + 4;
+    insertText(' '.repeat(next - col));
+    return;
+  }
+  if (e.key === 'Enter' && !mod && !e.shiftKey && !e.altKey) {
+    e.preventDefault();
+    const a = code.selectionStart, v = code.value;
+    const ls = v.lastIndexOf('\n', a - 1) + 1;
+    const cur = v.slice(ls, a);
+    let ind = /^ */.exec(cur)[0];
+    const para = /^(\s*)([A-Za-z0-9][A-Za-z0-9-]*)\s*\.\s*$/.exec(cur);
+    if (fmt === 'fixed' && para && para[1].length === 7 && !KW.has(para[2].toUpperCase()) && !DIVW.has(para[2].toUpperCase())) ind = ' '.repeat(11);
+    insertText('\n' + ind);
+  }
+});
+let saveT;
+code.addEventListener('input', () => {
+  scheduleRender();
+  if (errLine) { errLine = 0; scheduleRender(); }
+  clearTimeout(saveT);
+  $('savedNote').textContent = 'Editing…';
+  saveT = setTimeout(() => { saveCurrent(); noteSaved(); }, 450);
+  updateStatus();
+});
+
+/* ---------------- format toggle ---------------- */
+function setFmt(f, persist) {
+  fmt = f;
+  work.classList.toggle('fixed', f === 'fixed');
+  $('fmtFixed').setAttribute('aria-pressed', String(f === 'fixed'));
+  $('fmtFree').setAttribute('aria-pressed', String(f === 'free'));
+  buildRuler(rulerCol);
+  render(); updateStatus();
+  if (persist) saveCurrent();
+}
+$('fmtFixed').onclick = () => setFmt('fixed', true);
+$('fmtFree').onclick = () => setFmt('free', true);
+
+/* ---------------- documents ---------------- */
+function lessonById(id) { return LESSONS.find(l => l.id === id); }
+function saveCurrent() {
+  if (!doc) return;
+  const v = code.value;
+  if (doc.kind === 'lesson') {
+    const L = lessonById(doc.id);
+    if (v === L.code) delete drafts['lesson:' + doc.id]; else drafts['lesson:' + doc.id] = v;
+    store.set('drafts', drafts);
+  } else if (files[doc.name]) {
+    files[doc.name] = { ...files[doc.name], code: v, fmt, updated: Date.now() };
+    store.set('files', files);
+  }
+}
+function noteSaved() {
+  if (!doc) return;
+  $('savedNote').textContent = doc.kind === 'lesson'
+    ? (drafts['lesson:' + doc.id] ? 'Your edits are kept in this browser' : 'Starter code')
+    : 'Kept in this browser';
+}
+function setCode(v, f) {
+  code.value = v;
+  errLine = 0;
+  code.scrollTop = 0; code.scrollLeft = 0;
+  setFmt(f || 'fixed', false);
+  syncScroll();
+  code.setSelectionRange(0, 0);
+}
+function renderDocbar() {
+  const dn = $('docname');
+  if (!doc) { dn.innerHTML = ''; return; }
+  if (doc.kind === 'lesson') {
+    const i = LESSONS.findIndex(l => l.id === doc.id);
+    dn.innerHTML = `<span>Lesson ${i + 1}</span><span class="ext">· ${esc(LESSONS[i].title)}</span>
+      <button class="btn ghost" id="btnKeep" style="height:28px" title="Copy this code into My programs">Copy to My programs</button>`;
+    $('btnKeep').onclick = () => {
+      const base = (programIdOf(code.value) || LESSONS[i].id).toUpperCase();
+      const name = uniqueName(base);
+      files[name] = { code: code.value, fmt, updated: Date.now() };
+      store.set('files', files);
+      openFile(name); showTab('Files');
+      toast(`Copied to My programs as ${name}`);
+    };
+  } else {
+    dn.innerHTML = `<input id="nameInput" value="${esc(doc.name)}" aria-label="Program name" maxlength="30"><span class="ext">.cbl</span>`;
+    const ni = $('nameInput');
+    const commit = () => {
+      let n = ni.value.toUpperCase().replace(/[^A-Z0-9-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30);
+      if (!n || n === doc.name) { ni.value = doc.name; return; }
+      n = uniqueName(n);
+      files[n] = files[doc.name]; delete files[doc.name];
+      doc = { kind: 'file', name: n }; store.set('files', files); store.set('last', doc);
+      ni.value = n; renderFiles(); toast(`Renamed to ${n}`);
+    };
+    ni.addEventListener('change', commit);
+    ni.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); ni.blur(); } });
+  }
+  noteSaved();
+}
+function programIdOf(v) { const m = /PROGRAM-ID\.?\s+([A-Za-z0-9-]+)/i.exec(v); return m ? m[1].toUpperCase() : null; }
+function uniqueName(base) {
+  base = (base || 'PROGRAM').toUpperCase().replace(/[^A-Z0-9-]+/g, '-').slice(0, 26) || 'PROGRAM';
+  if (!files[base]) return base;
+  for (let k = 2; ; k++) if (!files[`${base}-${k}`]) return `${base}-${k}`;
+}
+function openLesson(i) {
+  saveCurrent();
+  lessonIdx = Math.max(0, Math.min(LESSONS.length - 1, i));
+  const L = LESSONS[lessonIdx];
+  doc = { kind: 'lesson', id: L.id };
+  store.set('last', doc); store.set('lastLesson', L.id);
+  setCode(drafts['lesson:' + L.id] ?? L.code, 'fixed');
+  renderLesson(); renderDocbar(); renderFiles();
+  resetOutput();
+}
+function openFile(name) {
+  saveCurrent();
+  const f = files[name]; if (!f) return;
+  doc = { kind: 'file', name };
+  store.set('last', doc);
+  setCode(f.code, f.fmt || COBOL.detectFormat(f.code));
+  renderDocbar(); renderFiles(); renderLesson();
+  resetOutput();
+}
+
+/* ---------------- lessons pane ---------------- */
+function renderLesson() {
+  const L = LESSONS[lessonIdx];
+  const onLesson = doc && doc.kind === 'lesson';
+  const chips = LESSONS.map((l, i) => `<button class="chip${i === lessonIdx && onLesson ? ' cur' : ''}${passed[l.id] ? ' done' : ''}" data-i="${i}" title="${esc(l.title)}${passed[l.id] ? ' (challenge done)' : ''}" aria-label="Lesson ${i + 1}: ${esc(l.title)}">${i + 1}</button>`).join('');
+  const ch = L.challenge;
+  $('paneLessons').innerHTML = `
+    <div class="chips">${chips}</div>
+    <div class="eyebrow">Lesson ${lessonIdx + 1} of ${LESSONS.length}</div>
+    <h2>${esc(L.title)}</h2>
+    ${onLesson ? '' : `<p class="verdict" style="background:var(--accent-soft);color:var(--accent)">You're editing one of your own programs. <button class="btn" id="btnBack" style="height:28px;margin-left:6px">Open this lesson's code</button></p>`}
+    ${L.body}
+    <div class="challenge">
+      <h3>Challenge</h3>
+      <p>${ch.task}</p>
+      <div class="row">
+        <button class="btn primary" id="btnCheck"${onLesson ? '' : ' disabled'}>Check my answer</button>
+        <button class="btn" id="btnHint">Show hint</button>
+        <button class="btn ghost" id="btnReset"${onLesson ? '' : ' disabled'} title="Put the original lesson code back">Reset code</button>
+      </div>
+      <div class="hint" id="hint" hidden><code>${esc(ch.hint)}</code></div>
+      <div id="verdict">${passed[L.id] ? '<div class="verdict ok">You have completed this challenge.</div>' : ''}</div>
+    </div>
+    <div class="lesson-nav">
+      <button class="btn" id="btnPrev"${lessonIdx === 0 ? ' disabled' : ''}>← Previous</button>
+      <button class="btn" id="btnNext"${lessonIdx === LESSONS.length - 1 ? ' disabled' : ''}>Next lesson →</button>
+    </div>`;
+  $('paneLessons').querySelectorAll('.chip').forEach(b => b.onclick = () => openLesson(+b.dataset.i));
+  $('btnHint').onclick = () => { const h = $('hint'); h.hidden = !h.hidden; $('btnHint').textContent = h.hidden ? 'Show hint' : 'Hide hint'; };
+  $('btnCheck').onclick = check;
+  const reset = $('btnReset');
+  reset.onclick = () => {
+    if (reset.dataset.arm) {
+      delete drafts['lesson:' + L.id]; store.set('drafts', drafts);
+      setCode(L.code, 'fixed'); noteSaved(); reset.textContent = 'Reset code'; delete reset.dataset.arm; toast('Starter code restored');
+    } else { reset.dataset.arm = '1'; reset.textContent = 'Click again to reset'; setTimeout(() => { if (reset.isConnected) { reset.textContent = 'Reset code'; delete reset.dataset.arm; } }, 3000); }
+  };
+  $('btnPrev').onclick = () => { openLesson(lessonIdx - 1); $('paneLessons').scrollTop = 0; };
+  $('btnNext').onclick = () => { openLesson(lessonIdx + 1); $('paneLessons').scrollTop = 0; };
+  const back = $('btnBack'); if (back) back.onclick = () => openLesson(lessonIdx);
+}
+
+/* ---------------- files pane ---------------- */
+function fmtDate(t) {
+  const d = new Date(t), now = new Date();
+  if (d.toDateString() === now.toDateString()) return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+}
+function renderFiles() {
+  const names = Object.keys(files).sort((a, b) => (files[b].updated || 0) - (files[a].updated || 0));
+  $('paneFiles').innerHTML = `
+    <h2>My programs</h2>
+    <div class="row" style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn primary" id="fNew">New program</button>
+      <button class="btn" id="fOpen">Open .cbl file…</button>
+    </div>
+    ${names.length ? `<ul class="files">${names.map(n => `
+      <li class="${doc && doc.kind === 'file' && doc.name === n ? 'cur' : ''}">
+        <button class="fname" data-n="${esc(n)}" title="Open ${esc(n)}">${esc(n)}.cbl</button>
+        <span class="fdate">${fmtDate(files[n].updated || Date.now())}</span>
+        <button class="btn ghost" data-del="${esc(n)}" style="height:28px;padding:0 8px" aria-label="Delete ${esc(n)}">Delete</button>
+      </li>`).join('')}</ul>`
+    : `<p class="empty">No programs yet. Start a new one, open a .cbl file from your computer, or use "Copy to My programs" on any lesson.</p>`}
+    <p style="font-size:14px;color:var(--ink-2)">Programs here are kept in this browser's storage. Use <b>Save .cbl</b> to keep a real file on your computer that you can open again later or compile with GnuCOBOL.</p>`;
+  $('fNew').onclick = newProgram;
+  $('fOpen').onclick = () => $('fileInput').click();
+  $('paneFiles').querySelectorAll('.fname').forEach(b => b.onclick = () => openFile(b.dataset.n));
+  $('paneFiles').querySelectorAll('[data-del]').forEach(b => b.onclick = () => {
+    const n = b.dataset.del;
+    if (!b.dataset.arm) {
+      b.dataset.arm = '1'; b.textContent = 'Confirm'; b.style.color = 'var(--bad)';
+      setTimeout(() => { if (b.isConnected) { b.textContent = 'Delete'; b.style.color = ''; delete b.dataset.arm; } }, 3000);
+      return;
+    }
+    delete files[n]; store.set('files', files);
+    if (doc && doc.kind === 'file' && doc.name === n) { doc = null; openLesson(lessonIdx); }
+    renderFiles(); toast(`Deleted ${n}`);
+  });
+}
+function newProgram() {
+  const name = uniqueName('MY-PROGRAM');
+  files[name] = { code: TEMPLATE(name), fmt: 'fixed', updated: Date.now() };
+  store.set('files', files);
+  openFile(name); showTab('Files');
+  code.focus();
+}
+$('btnNew').onclick = newProgram;
+
+/* ---------------- open / save .cbl ---------------- */
+$('btnOpen').onclick = () => $('fileInput').click();
+$('fileInput').addEventListener('change', e => { const f = e.target.files[0]; if (f) loadFile(f); e.target.value = ''; });
+function loadFile(f) {
+  if (f.size > 2_000_000) { toast('That file is too large to open here.'); return; }
+  const r = new FileReader();
+  r.onload = () => {
+    const text = String(r.result).replace(/\r\n?/g, '\n');
+    const base = f.name.replace(/\.[^.]+$/, '');
+    const name = uniqueName(base);
+    files[name] = { code: text, fmt: COBOL.detectFormat(text), updated: Date.now() };
+    store.set('files', files);
+    openFile(name); showTab('Files');
+    toast(`Opened ${f.name}`);
+  };
+  r.onerror = () => toast(`Couldn't read ${f.name}.`);
+  r.readAsText(f);
+}
+async function saveCbl() {
+  saveCurrent();
+  const base = doc && doc.kind === 'file' ? doc.name : (programIdOf(code.value) || 'PROGRAM');
+  const fname = base + '.cbl';
+  const text = code.value.endsWith('\n') ? code.value : code.value + '\n';
+  if (window.showSaveFilePicker) {
+    try {
+      const h = await window.showSaveFilePicker({ suggestedName: fname, types: [{ description: 'COBOL source', accept: { 'text/plain': ['.cbl', '.cob'] } }] });
+      const w = await h.createWritable(); await w.write(text); await w.close();
+      toast(`Saved ${h.name}`); return;
+    } catch (e) {
+      if (e && e.name === 'AbortError') return;
+    }
+  }
+  const blob = new Blob([text], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = fname;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+  toast(`Downloaded ${fname}`);
+}
+$('btnSave').onclick = saveCbl;
+const cw = $('codeWrap');
+cw.addEventListener('dragover', e => { if ([...e.dataTransfer.types].includes('Files')) { e.preventDefault(); cw.classList.add('drop'); } });
+cw.addEventListener('dragleave', () => cw.classList.remove('drop'));
+cw.addEventListener('drop', e => { cw.classList.remove('drop'); const f = e.dataTransfer.files[0]; if (f) { e.preventDefault(); loadFile(f); } });
+
+/* ---------------- tabs ---------------- */
+function showTab(which) {
+  ['Lessons', 'Files', 'Ref'].forEach(t => {
+    $('tab' + t).setAttribute('aria-selected', String(t === which));
+    $('pane' + t).hidden = t !== which;
+  });
+  store.set('tab', which);
+}
+['Lessons', 'Files', 'Ref'].forEach(t => $('tab' + t).onclick = () => showTab(t));
+
+/* ---------------- running ---------------- */
+function setState(kind, text) {
+  const rs = $('runstate'); rs.className = 'runstate ' + (kind || '');
+  $('runtext').textContent = text;
+}
+function resetOutput() {
+  out.innerHTML = '<div class="placeholder">Output from DISPLAY appears here, one line per DISPLAY, on green-bar paper like an old line printer. Press Run or Ctrl+Enter.</div>';
+  setState('', 'Ready');
+}
+$('btnClear').onclick = resetOutput;
+function sysLine(text, cls) {
+  const d = document.createElement('div'); d.className = 'ln ' + (cls || 'sys'); d.textContent = text; out.appendChild(d);
+  out.scrollTop = out.scrollHeight; return d;
+}
+function showError(e) {
+  const msg = e && e.message ? e.message : String(e);
+  sysLine(msg, 'err');
+  if (e && e.line) {
+    errLine = e.line; render();
+    const top = (e.line - 3) * parseFloat(getComputedStyle(code).lineHeight || 21);
+    if (e.line * 21 < code.scrollTop || e.line * 21 > code.scrollTop + code.clientHeight - 30) code.scrollTop = Math.max(0, top);
+  }
+}
+const MAX_LINES = 5000;
+async function run(opts = {}) {
+  if (running) return null;
+  saveCurrent();
+  errLine = 0; render();
+  out.innerHTML = '';
+  let prog;
+  try { prog = COBOL.compile(code.value, fmt === 'fixed'); }
+  catch (e) {
+    if (!(e instanceof COBOL.CobolError)) console.error(e);
+    showError(e); setState('bad', 'Could not compile'); return null;
+  }
+  const lines = []; let cur = null, shown = 0;
+  const scroll = () => { out.scrollTop = out.scrollHeight; };
+  const host = {
+    write(t, nl) {
+      if (!cur) {
+        cur = { t: '', el: null };
+        if (shown < MAX_LINES) { cur.el = document.createElement('div'); cur.el.className = 'ln'; out.appendChild(cur.el); }
+        shown++;
+        if (shown === MAX_LINES + 1) sysLine(`Showing the first ${MAX_LINES.toLocaleString()} lines only.`);
+      }
+      cur.t += t;
+      if (cur.el) cur.el.textContent = cur.t;
+      if (nl) { lines.push(cur.t); cur = null; }
+      scroll();
+    },
+    input(name) {
+      const prefix = cur ? cur.t : '';
+      if (cur && cur.el) cur.el.remove();
+      const finish = v => { lines.push(prefix + v); const d = sysLine(prefix + v, 'in'); if (prefix) { d.className = 'ln'; d.innerHTML = esc(prefix) + `<span style="color:var(--accent)">${esc(v)}</span>`; } cur = null; };
+      if (opts.inputs) {
+        const v = opts.inputs.shift();
+        if (v == null) return Promise.reject(new COBOL.CobolError(`The program asked for more input than this challenge types in. It only answers ${opts.inputCount} ACCEPT${opts.inputCount === 1 ? '' : 's'}.`, runtime ? runtime.line : 0));
+        finish(v); return Promise.resolve(v);
+      }
+      return new Promise(res => {
+        const row = document.createElement('div'); row.className = 'ln ask';
+        row.innerHTML = `${prefix ? `<span style="color:var(--ink)">${esc(prefix)}</span>` : '<span aria-hidden="true">&gt;</span>'}<input aria-label="Type a value for ${esc(name)} and press Enter" placeholder="type a value for ${esc(name)}, then Enter">`;
+        out.appendChild(row); scroll();
+        const inp = row.querySelector('input');
+        setState('running', `Waiting for input (${name})`);
+        setTimeout(() => inp.focus(), 0);
+        pendingInput = v => { row.remove(); pendingInput = null; if (v != null) finish(v); res(v ?? ''); };
+        inp.addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); setState('running', 'Running…'); pendingInput(inp.value); } });
+      });
+    }
+  };
+  runtime = new COBOL.Runtime(prog, host);
+  running = true;
+  $('btnRun').disabled = true; $('btnStop').disabled = false;
+  setState('running', 'Running…');
+  const t0 = performance.now();
+  try {
+    await runtime.run();
+    if (cur) lines.push(cur.t);
+    const ms = Math.round(performance.now() - t0);
+    if (!out.children.length) sysLine('The program ran but displayed nothing.');
+    setState('ok', `Finished · ${runtime.steps.toLocaleString()} statements · ${ms} ms`);
+    return { lines };
+  } catch (e) {
+    if (e instanceof COBOL.Halt) { sysLine('Stopped.'); setState('', 'Stopped'); return null; }
+    if (!(e instanceof COBOL.CobolError)) console.error(e);
+    showError(e); setState('bad', 'Stopped with an error');
+    return null;
+  } finally {
+    running = false; runtime = null; pendingInput = null;
+    $('btnRun').disabled = false; $('btnStop').disabled = true;
+  }
+}
+$('btnRun').onclick = () => run();
+$('btnStop').onclick = () => { if (runtime) { runtime.stopped = true; if (pendingInput) pendingInput(null); } };
+
+async function check() {
+  const L = LESSONS[lessonIdx], ch = L.challenge;
+  const vd = $('verdict');
+  vd.innerHTML = '';
+  const inputs = [...(ch.inputs || [])];
+  const r = await run({ inputs, inputCount: inputs.length });
+  if (!r) { vd.innerHTML = `<div class="verdict bad">Your program didn't finish cleanly. Fix the error shown in SYSOUT, then check again.</div>`; return; }
+  const norm = s => s.replace(/\s+/g, ' ').trim();
+  const got = r.lines.map(norm);
+  let pos = 0, missing = null;
+  for (const exp of ch.expect) {
+    const e = norm(exp);
+    let found = -1;
+    for (let k = pos; k < got.length; k++) if (got[k] === e) { found = k; break; }
+    if (found < 0) { missing = exp; break; }
+    pos = found + 1;
+  }
+  if (!missing) {
+    passed[L.id] = true; store.set('passed', passed);
+    renderLesson();
+    $('verdict').innerHTML = `<div class="verdict ok">Correct. Your output has every line this challenge asks for.${lessonIdx < LESSONS.length - 1 ? ' On to the next lesson when you are ready.' : ' That was the last lesson.'}</div>`;
+  } else {
+    const count = ch.expect.filter(x => norm(x) === norm(missing)).length;
+    vd.innerHTML = `<div class="verdict bad">Not yet. I was looking for ${count > 1 ? `${count} lines` : 'a line'} reading <code>${esc(missing)}</code> in the output. Spaces between words don't matter, but spelling and capitals do.</div>`;
+  }
+}
+
+/* ---------------- start ---------------- */
+window.addEventListener('beforeunload', saveCurrent);
+document.addEventListener('visibilitychange', () => { if (document.hidden) saveCurrent(); });
+buildRuler(1);
+const last = store.get('last', null);
+if (last && last.kind === 'file' && files[last.name]) {
+  const li = LESSONS.findIndex(l => l.id === store.get('lastLesson', LESSONS[0].id));
+  lessonIdx = li < 0 ? 0 : li;
+  openFile(last.name);
+} else if (last && last.kind === 'lesson' && lessonById(last.id)) {
+  openLesson(LESSONS.findIndex(l => l.id === last.id));
+} else openLesson(0);
+showTab(store.get('tab', 'Lessons'));
+renderFiles();
+})();
+
+<\/script>
+</body>
+</html>
+</script>
+<script>
+(function(){
+  var v=document.getElementById('cobolView'),f=document.getElementById('cobolFrame'),loaded=false;
+  function open(){
+    if(!loaded){var t=document.getElementById('cobol-src').textContent.replace(/<\\\/script/g,'</script').replace(/<\\!--/g,'<!--');f.srcdoc=t;loaded=true}
+    v.hidden=false;document.body.style.overflow='hidden';
+    if(location.hash!=='#cobol')history.replaceState(null,'','#cobol');
+  }
+  function close(){v.hidden=true;document.body.style.overflow='';if(location.hash==='#cobol')history.replaceState(null,'',location.pathname+location.search)}
+  document.getElementById('cobolBtn').addEventListener('click',open);
+  document.getElementById('cobolBack').addEventListener('click',close);
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!v.hidden&&!document.getElementById('overlay').offsetParent){close()}});
+  if(location.hash==='#cobol')open();
+})();
+</script>
 <div id="overlay" hidden></div>
 <div id="toast" class="toast" hidden></div>
 

@@ -20,3 +20,6 @@ Clearing your browser's site data erases your changes, so export a backup now an
 ## Put it online with GitHub Pages
 
 In the repository settings, open **Pages**, choose **Deploy from a branch**, pick the main branch and the root folder, and save. The guide will be served at the address GitHub shows.
+
+## COBOL Workbench
+The whole [COBOL Workbench](https://github.com/JulianSoriano/COBOL-Workbench) (13 lessons, editor and in-browser interpreter) is built into `index.html`. Press **COBOL Workbench** in the top bar, or open `index.html#cobol`. It runs in its own frame, so it does not affect the guide's entries. Its programs are saved separately in the browser.
