@@ -26,3 +26,6 @@ The whole [COBOL Workbench](https://github.com/JulianSoriano/COBOL-Workbench) (1
 
 ## AppImage Joiner
 The whole [AppImage Joiner](https://github.com/JulianSoriano/AppImage-Joiner) (join split AppImage files, merge PDFs, split PDFs) is built into `index.html`. Press **AppImage Joiner** in the top bar, or open `index.html#aj`. Everything runs in the browser; nothing is uploaded. PDF handling uses pdf-lib 1.17.1 (MIT), embedded in the page (its licence text is included in the file).
+
+## CS50 computer-science sections
+Three sections follow Harvard's CS50x week by week (Scratch, C, arrays, algorithms, memory, data structures, Python, SQL, HTML/CSS/JavaScript, Flask, plus the AI and cybersecurity segments): **CS50: Computer science**, **CS50: C & Python** and **CS50: Data, web & AI**. Each entry is tagged `cs50-w0` to `cs50-w9`, and a **CS50 study map** note lists them in order. The entries are original study notes, not course material. Official course: https://cs50.harvard.edu/x/
