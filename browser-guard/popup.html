@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <img src="icons/icon32.png" alt="">
+    <div>
+      <h1>Browser Guard</h1>
+      <p class="sub">Runs on your computer only. Nothing is sent anywhere.</p>
+    </div>
+  </header>
+
+  <section id="summary" class="summary"></section>
+
+  <nav>
+    <button class="tab active" data-panel="page">This site</button>
+    <button class="tab" data-panel="ext">Extensions</button>
+    <button class="tab" data-panel="settings">Settings</button>
+  </nav>
+
+  <main>
+    <div id="page" class="panel active"></div>
+    <div id="ext" class="panel"></div>
+    <div id="settings" class="panel"></div>
+  </main>
+
+  <script src="trackers.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
