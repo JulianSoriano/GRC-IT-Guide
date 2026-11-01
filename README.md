@@ -21,6 +21,9 @@ Clearing your browser's site data erases your changes, so export a backup now an
 
 In the repository settings, open **Pages**, choose **Deploy from a branch**, pick the main branch and the root folder, and save. The guide will be served at the address GitHub shows.
 
+## Browser Guard
+A small Chrome extension that rates your other extensions for spyware-like access, lists the trackers on each site you visit, and checks whether a proxy is redirecting your browsing. Press **Browser Guard** in the top bar to open its entry and download it. The zip is embedded in `index.html`, so the download works offline, and the entry shows its SHA-256. The readable source is in [`browser-guard/`](browser-guard/). To install, unzip it, open `chrome://extensions`, turn on **Developer mode** and choose **Load unpacked**. It only reads; nothing is sent anywhere.
+
 ## COBOL Workbench
 The whole [COBOL Workbench](https://github.com/JulianSoriano/COBOL-Workbench) (13 lessons, editor and in-browser interpreter) is built into `index.html`. Press **COBOL Workbench** in the top bar, or open `index.html#cobol`. It runs in its own frame, so it does not affect the guide's entries. Its programs are saved separately in the browser.
 
