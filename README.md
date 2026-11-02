@@ -32,3 +32,6 @@ The whole [AppImage Joiner](https://github.com/JulianSoriano/AppImage-Joiner) (j
 
 ## CS50 computer-science sections
 Three sections follow Harvard's CS50x week by week (Scratch, C, arrays, algorithms, memory, data structures, Python, SQL, HTML/CSS/JavaScript, Flask, plus the AI and cybersecurity segments): **CS50: Computer science**, **CS50: C & Python** and **CS50: Data, web & AI**. Each entry is tagged `cs50-w0` to `cs50-w9`, and a **CS50 study map** note lists them in order. The entries are original study notes, not course material. Official course: https://cs50.harvard.edu/x/
+
+## Spyware Scanner download
+Press **Spyware Scanner** in the top bar for a note with a download button (the browser version of Zero Breach Toolkit, with its SHA-256) and step-by-step instructions. The readable file is also in `scanner/index.html`.
