@@ -35,3 +35,6 @@ Three sections follow Harvard's CS50x week by week (Scratch, C, arrays, algorith
 
 ## Spyware Scanner download
 Press **Spyware Scanner** in the top bar for a note with a download button (the browser version of Zero Breach Toolkit, with its SHA-256) and step-by-step instructions. The readable file is also in `scanner/index.html`.
+
+## Linux terminal guide
+The Linux basics section now has a full terminal guide (29 entries): start with **Terminal guide: start here**. It covers prompts, paths, files, wildcards, history and shortcuts, quoting, help, pipes and text tools, job control, variables, editors, scripts, safety, using the terminal for audit evidence, a cheat sheet, ten practice tasks and interview questions. Entry text now also shows numbered lists and mixed bullet lists properly.
