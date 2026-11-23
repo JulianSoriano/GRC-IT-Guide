@@ -38,3 +38,7 @@ Press **Spyware Scanner** in the top bar for a note with a download button (the 
 
 ## Linux terminal guide
 The Linux basics section now has a full terminal guide (29 entries): start with **Terminal guide: start here**. It covers prompts, paths, files, wildcards, history and shortcuts, quoting, help, pipes and text tools, job control, variables, editors, scripts, safety, using the terminal for audit evidence, a cheat sheet, ten practice tasks and interview questions. Entry text now also shows numbered lists and mixed bullet lists properly.
+
+## CCNA study section
+
+Six sidebar categories (N1 to N6) cover the CCNA 200-301 blueprint: fundamentals and CLI, switching and wireless, IP routing, services and security, automation and AI, and practice questions. Entries are tagged `v1.1` or `v2.0` for the two blueprint versions (v1.1 until 2 Feb 2027, v2.0 from 3 Feb 2027). The **Subnetting Trainer** in the top bar gives random drills with checking. These are study notes, not official Cisco material. Check the current topic list on Cisco's CCNA page before booking.
